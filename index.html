@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Sistema Contable Raumauzi PRO</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+
+:root { --primary: #1e293b; --green: #16a34a; --yellow: #ca8a04; --bg: #f1f5f9; --blue: #2563eb; --red: #dc2626; }
+
+body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 10px; color: #333; }
+
+.container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
+
+
+.header-box { text-align: center; margin-bottom: 20px; }
+
+.animated-title {
+
+font-size: 2.8em; font-weight: 800; margin: 0;
+
+background: linear-gradient(90deg, #1e293b, #2563eb, #1e293b);
+
+background-size: 200% auto; -webkit-background-clip: text;
+
+-webkit-text-fill-color: transparent; animation: shine 3s linear infinite;
+
+}
+
+.subtitle { font-size: 0.9em; color: #64748b; letter-spacing: 2px; text-transform: uppercase; margin-top: -5px; }
+
+@keyframes shine { to { background-position: 200% center; } }
+
+
+
+header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 10px; }
+
+.status { padding: 4px 12px; border-radius: 20px; font-size: 0.75em; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+
+.online { background: #dcfce7; color: #166534; }
+
+.offline { background: #fee2e2; color: #991b1b; }
+
+
+/* Punto de sincronización automática */
+
+.sync-dot { width: 8px; height: 8px; background: #16a34a; border-radius: 50%; display: none; }
+
+.syncing .sync-dot { display: inline-block; animation: blink 1s infinite; }
+
+@keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+
+
+.year-selector { margin-bottom: 20px; text-align: center; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
+
+.year-selector select { padding: 10px; border-radius: 5px; width: 100%; max-width: 200px; border: 1px solid #cbd5e1; font-weight: bold; }
+
+
+.grid-cajas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+
+.btn-caja-main { padding: 20px 10px; background: white; border: 2px solid #e2e8f0; border-radius: 10px; cursor: pointer; font-weight: bold; text-align: center; transition: 0.3s; color: var(--primary); display: flex; flex-direction: column; gap: 8px; }
+
+.btn-caja-main:hover { border-color: var(--blue); background: #f0f7ff; transform: translateY(-2px); }
+
+
+
+#interfazCaja { display: none; border-top: 3px solid var(--blue); padding-top: 20px; animation: fadeIn 0.4s; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 15px; }
+
+th, td { border: 1px solid #94a3b8; padding: 6px; text-align: left; }
+
+.th-ent { background: var(--green); color: white; text-align: center; }
+
+.th-sal { background: var(--yellow); color: white; text-align: center; }
+
+.money { text-align: right; font-family: monospace; font-weight: bold; white-space: nowrap; }
+
+.btn-del-row { background: none; border: none; color: var(--red); cursor: pointer; font-size: 14px; }
+
+
+
+.card { padding: 12px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 15px; background: #fff; }
+
+.ent { border-top: 5px solid var(--green); }
+
+.sal { border-top: 5px solid var(--yellow); }
+
+
+
+.cuadro-final { border: 1px solid #333; padding: 10px; margin-top: 20px; }
+
+.row-final { display: flex; justify-content: space-between; padding: 4px 0; }
+
+.bg-verde { background: #dcfce7; font-weight: bold; }
+
+
+
+input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; }
+
+button { cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
+
+.btn-add { background: var(--blue); color: white; padding: 12px; width: 100%; margin-top: 10px; }
+
+
+.tabs { display: flex; overflow-x: auto; gap: 4px; margin-bottom: 10px; padding-bottom: 5px; }
+
+.tab { padding: 8px 12px; background: #e2e8f0; border-radius: 5px; cursor: pointer; white-space: nowrap; font-size: 0.85em; }
+
+.tab.active { background: var(--primary); color: white; }
+
+
+
+#loader { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.9); z-index:99; text-align:center; padding-top:40%; }
+
+.spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+</style>
+
+</head>
+
+<body>
+
+
+
+<div id="loader"><div class="spinner"></div><h3 id="loaderText">Procesando...</h3></div>
+
+
+
+<div class="container">
+
+<div class="header-box">
+
+<div class="animated-title">Raumauzi</div>
+
+<div class="subtitle">multicaja profesional</div>
+
+</div>
+
+
+<header>
+
+<span id="yearDisplay" style="font-weight:bold; color:var(--blue);">Panel Fiscal</span>
+
+<div id="statusContainer" class="status online">
+
+<span class="sync-dot"></span>
+
+<span id="statusTxt">Online</span>
+
+</div>
+
+</header>
+
+
+
+<div id="vistaPrincipal">
+
+<div class="year-selector">
+
+<label>Seleccionar Año:</label>
+
+<select id="selectYear" onchange="renderCajas()"></select>
+
+</div>
+
+<div class="grid-cajas" id="gridCajas"></div>
+
+<button class="btn-add" style="background:#1e293b;" onclick="nuevaCaja()">+ Crear Nueva Caja (Admin)</button>
+
+<button class="btn-add" onclick="fullSync(false)">🔄 Sincronizar Ahora (Manual)</button>
+
+</div>
+
+
+
+<div id="interfazCaja">
+
+<button onclick="cerrarCaja()" style="background:#64748b; color:white; padding:8px 15px; margin-bottom:10px;">⬅ Volver</button>
+
+<h3 id="cajaActivaTitulo" style="text-align:center; color:var(--blue); margin:10px 0;"></h3>
+
+
+
+<div id="seccionIngreso">
+
+<div style="text-align:center; margin-bottom:15px; background:#f8f9fa; padding:10px; border-radius:8px; border: 1px solid #ddd;">
+
+<label>Saldo Inicial: Q</label>
+
+<input type="number" id="initBal" style="width:140px; text-align:center;" step="0.01" onchange="saveInit()">
+
+</div>
+
+<div style="display:flex; gap:10px; flex-wrap:wrap;">
+
+<div class="card ent" style="flex:1; min-width:260px;">
+
+<strong>➕ Entrada</strong>
+
+<input type="date" id="inDate">
+
+<input type="text" id="inDesc" placeholder="Concepto">
+
+<input type="number" id="inMonto" placeholder="Q 0.00" step="0.01">
+
+<button class="btn-add" style="background:var(--green);" onclick="add('entrada')">Guardar</button>
+
+</div>
+
+<div class="card sal" style="flex:1; min-width:260px;">
+
+<strong>➖ Salida</strong>
+
+<input type="date" id="outDate">
+
+<input type="text" id="outDesc" placeholder="Concepto">
+
+<input type="number" id="outMonto" placeholder="Q 0.00" step="0.01">
+
+<button class="btn-add" style="background:var(--yellow);" onclick="add('salida')">Guardar</button>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<button id="btnVerHoja" onclick="toggleHoja()" style="background:var(--primary); color:white; width:100%; padding:12px; margin:15px 0;">👁️ Ver Movimientos y Reporte</button>
+
+
+
+<div id="hojaContenido" style="display:none;">
+
+<div class="tabs" id="tabsMeses"></div>
+
+<h4 id="monthHeader" style="text-align:center; text-transform:uppercase;"></h4>
+
+
+<div id="tablasContenedor">
+
+<table>
+
+<thead>
+
+<tr><th colspan="5" class="th-ent">ENTRADAS</th></tr>
+
+<tr style="background:#eee;"><th>Est.</th><th>Día</th><th>Concepto</th><th>Monto</th><th>X</th></tr>
+
+</thead>
+
+<tbody id="tbIn"></tbody>
+
+<tfoot><tr><td colspan="3" style="text-align:right;">SUMA:</td><td id="sumIn" class="money"></td><td></td></tr></tfoot>
+
+</table>
+
+
+
+<table>
+
+<thead>
+
+<tr><th colspan="5" class="th-sal">EGRESOS</th></tr>
+
+<tr style="background:#eee;"><th>Est.</th><th>Día</th><th>Concepto</th><th>Monto</th><th>X</th></tr>
+
+</thead>
+
+<tbody id="tbOut"></tbody>
+
+<tfoot><tr><td colspan="3" style="text-align:right;">SUMA:</td><td id="sumOut" class="money"></td><td></td></tr></tfoot>
+
+</table>
+
+
+
+<div class="cuadro-final">
+
+<div class="row-final"><span>Egresos:</span><span id="resOut" style="color:var(--red); font-weight:bold;"></span></div>
+
+<div class="row-final bg-verde"><span>Saldo Próx:</span><span id="resBal"></span></div>
+
+<div class="row-final"><span>Iguales:</span><span id="resEq"></span></div>
+
+</div>
+
+</div>
+
+
+
+<div id="vistaResumen" style="display:none;">
+
+<h3 style="text-align:center; color:var(--primary);">RESUMEN ANUAL</h3>
+
+<table id="tableResumen">
+
+<thead><tr style="background:var(--primary); color:white;"><th>Mes</th><th>Entradas</th><th>Salidas</th><th>Saldo</th></tr></thead>
+
+<tbody id="bodyResumen"></tbody>
+
+</table>
+
+<div class="cuadro-final" style="background:#f1f5f9;">
+
+<div class="row-final"><span>Saldo Inicial Año:</span><span id="resAnualInit"></span></div>
+
+<div class="row-final"><span>Total Ingresos:</span><span id="resAnualIn" style="color:var(--green);"></span></div>
+
+<div class="row-final"><span>Total Egresos:</span><span id="resAnualOut" style="color:var(--red);"></span></div>
+
+<div class="row-final bg-verde" style="font-size:1.1em;"><span>Saldo Final Año:</span><span id="resAnualFinal"></span></div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<script>
+
+const MI_LINK_FIJO = "https://script.google.com/macros/s/AKfycbzdzPDp5m41vMn-OyGA8CxTFZHHLbH3V0LVN7HWp6VZi05UcSCnGj0N-uMAt4S_ApZC8Q/exec";
+
+const PASS = "Raul1";
+
+const M = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+
+let db = JSON.parse(localStorage.getItem('db_raum_v6')) || [];
+
+let cajasMetadata = JSON.parse(localStorage.getItem('cajas_meta_v6')) || [{ nombre: "Master", year: 2026, saldoInicial: 0 }];
+
+
+let cajaActual = null, mesActual = new Date().getMonth(), modoResumen = false;
+
+
+
+function fMoney(n) {
+
+return "Q " + parseFloat(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+}
+
+
+
+window.onload = () => {
+
+generarAnios();
+
+renderCajas();
+
+actualizarFechas();
+
+if(navigator.onLine) fullSync(true); // Sincronización automática al abrir
+
+};
+
+
+
+function generarAnios() {
+
+let s = document.getElementById('selectYear');
+
+let c = new Date().getFullYear();
+
+for(let i = 2025; i <= 2040; i++) {
+
+let o = document.createElement('option'); o.value = i; o.innerText = i;
+
+if(i === c) o.selected = true;
+
+s.appendChild(o);
+
+}
+
+}
+
+
+
+function renderCajas() {
+
+let year = parseInt(document.getElementById('selectYear').value);
+
+let grid = document.getElementById('gridCajas');
+
+grid.innerHTML = '';
+
+cajasMetadata.filter(c => c.year === year).forEach(c => {
+
+let d = document.createElement('div');
+
+d.className = 'btn-caja-main';
+
+d.innerHTML = `📦 <strong>${c.nombre}</strong><span>${c.year}</span>`;
+
+d.onclick = () => abrirCaja(c);
+
+grid.appendChild(d);
+
+});
+
+}
+
+
+
+function abrirCaja(c) {
+
+cajaActual = c;
+
+modoResumen = false;
+
+document.getElementById('vistaPrincipal').style.display = 'none';
+
+document.getElementById('interfazCaja').style.display = 'block';
+
+document.getElementById('cajaActivaTitulo').innerText = `${c.nombre} - ${c.year}`;
+
+document.getElementById('initBal').value = c.saldoInicial;
+
+document.getElementById('hojaContenido').style.display = 'none';
+
+document.getElementById('btnVerHoja').innerText = "👁️ Ver Movimientos y Reporte";
+
+actualizarFechas();
+
+renderTabs();
+
+renderMovimientos();
+
+}
+
+
+
+function toggleHoja() {
+
+let h = document.getElementById('hojaContenido');
+
+let b = document.getElementById('btnVerHoja');
+
+if(h.style.display === 'none') {
+
+h.style.display = 'block';
+
+b.innerText = "🙈 Ocultar Hoja";
+
+} else {
+
+h.style.display = 'none';
+
+b.innerText = "👁️ Ver Movimientos y Reporte";
+
+}
+
+}
+
+
+
+function cerrarCaja() {
+
+document.getElementById('vistaPrincipal').style.display = 'block';
+
+document.getElementById('interfazCaja').style.display = 'none';
+
+renderCajas();
+
+}
+
+
+
+function nuevaCaja() {
+
+if(prompt("Contraseña Admin:") !== PASS) return alert("No autorizado");
+
+let n = prompt("Nombre de la caja:");
+
+if(!n) return;
+
+let y = parseInt(document.getElementById('selectYear').value);
+
+cajasMetadata.push({ nombre: n, year: y, saldoInicial: 0 });
+
+localStorage.setItem('cajas_meta_v6', JSON.stringify(cajasMetadata));
+
+renderCajas();
+
+}
+
+
+
+function add(type) {
+
+let p = type === 'entrada' ? 'in' : 'out';
+
+let monto = parseFloat(document.getElementById(p+'Monto').value);
+
+let dateVal = document.getElementById(p+'Date').value;
+
+
+
+if(!dateVal || isNaN(monto)) return alert("Faltan datos");
+
+
+
+let item = {
+
+id: Date.now(), synced: false, type: type,
+
+date: dateVal,
+
+desc: document.getElementById(p+'Desc').value,
+
+amount: monto,
+
+cajaNombre: cajaActual.nombre, cajaYear: cajaActual.year,
+
+mIdx: new Date(dateVal + "T12:00:00").getMonth()
+
+};
+
+
+
+db.push(item);
+
+saveDB();
+
+document.getElementById(p+'Desc').value = '';
+
+document.getElementById(p+'Monto').value = '';
+
+actualizarFechas();
+
+renderMovimientos();
+
+if(navigator.onLine) syncToCloud(item);
+
+}
+
+
+
+function saveInit() {
+
+let nuevoSaldo = parseFloat(document.getElementById('initBal').value) || 0;
+
+cajaActual.saldoInicial = nuevoSaldo;
+
+localStorage.setItem('cajas_meta_v6', JSON.stringify(cajasMetadata));
+
+
+if(navigator.onLine) {
+
+fetch(MI_LINK_FIJO, {
+
+method: 'POST', mode: 'no-cors',
+
+body: JSON.stringify({ action: "saveInit", cajaNombre: cajaActual.nombre, cajaYear: cajaActual.year, saldo: nuevoSaldo })
+
+});
+
+}
+
+renderMovimientos();
+
+}
+
+
+
+async function fullSync(silencioso = false) {
+
+if(!navigator.onLine) return;
+
+
+const container = document.getElementById('statusContainer');
+
+if(silencioso) container.classList.add('syncing');
+
+else document.getElementById('loader').style.display = 'block';
+
+
+try {
+
+const res = await fetch(MI_LINK_FIJO + "?action=read");
+
+const data = await res.json();
+
+
+cajasMetadata = data.cajas.map(cCloud => {
+
+let p = cCloud.name.split('-');
+
+return { nombre: p[0], year: parseInt(p[1]), saldoInicial: parseFloat(cCloud.saldo) };
+
+});
+
+localStorage.setItem('cajas_meta_v6', JSON.stringify(cajasMetadata));
+
+
+
+let localPending = db.filter(i => !i.synced);
+
+db = data.movimientos.map(d => {
+
+let p = d.cajaFull.split('-');
+
+return { id: d.id, synced: true, type: d.type, date: d.date.split('T')[0], desc: d.desc, amount: parseFloat(d.amount), cajaNombre: p[0], cajaYear: parseInt(p[1]), mIdx: new Date(d.date).getUTCMonth() };
+
+});
+
+db = [...db, ...localPending];
+
+saveDB();
+
+renderCajas();
+
+if(cajaActual) renderMovimientos();
+
+if(!silencioso) alert("✅ Sistema sincronizado con éxito.");
+
+} catch(e) { console.log("Error sync"); }
+
+
+container.classList.remove('syncing');
+
+document.getElementById('loader').style.display = 'none';
+
+}
+
+
+
+async function deleteItem(id) {
+
+if(!confirm("¿Borrar permanentemente?")) return;
+
+setLoader(true, "Eliminando...");
+
+try {
+
+if(navigator.onLine) {
+
+await fetch(MI_LINK_FIJO, {
+
+method: 'POST', mode: 'no-cors',
+
+body: JSON.stringify({ action: "delete", id: id, caja: `${cajaActual.nombre}-${cajaActual.year}` })
+
+});
+
+}
+
+db = db.filter(i => i.id !== id);
+
+saveDB();
+
+renderMovimientos();
+
+} catch(e) { alert("Error"); }
+
+setLoader(false);
+
+}
+
+
+
+function renderMovimientos() {
+
+document.getElementById('vistaResumen').style.display = 'none';
+
+document.getElementById('tablasContenedor').style.display = 'block';
+
+document.getElementById('monthHeader').innerText = M[mesActual];
+
+
+
+let start = getBal(mesActual);
+let mData = db.filter(i => i.cajaNombre === cajaActual.nombre && i.cajaYear === cajaActual.year && i.mIdx === mesActual);
+
+let ti = document.getElementById('tbIn');
+ti.innerHTML = `<tr><td>✅</td><td>01</td><td>Saldo Anterior</td><td class="money">${fMoney(start)}</td><td>-</td></tr>`;
+
+let to = document.getElementById('tbOut');
+to.innerHTML = '';
+
+let si = 0, so = 0;
+
+// Procesar Entradas con botón de factura
+mData.filter(i => i.type==='entrada').forEach(e => {
+    si += e.amount;
+    ti.innerHTML += `<tr>
+        <td>${e.synced?'☁️':'🕒'}</td>
+        <td>${e.date.split('-')[2]}</td>
+        <td>${e.desc}</td>
+        <td class="money">${fMoney(e.amount)}</td>
+        <td>
+            <button onclick="generarPDF(${e.id})" style="border:none; background:none; cursor:pointer; font-size:16px;" title="Factura">📄</button>
+            <button class="btn-del-row" onclick="deleteItem(${e.id})">❌</button>
+        </td>
+    </tr>`;
+});
+
+// Procesar Salidas con botón de factura
+mData.filter(i => i.type==='salida').forEach(s => {
+    so += s.amount;
+    to.innerHTML += `<tr>
+        <td>${s.synced?'☁️':'🕒'}</td>
+        <td>${s.date.split('-')[2]}</td>
+        <td>${s.desc}</td>
+        <td class="money">${fMoney(s.amount)}</td>
+        <td>
+            <button onclick="generarPDF(${s.id})" style="border:none; background:none; cursor:pointer; font-size:16px;" title="Factura">📄</button>
+            <button class="btn-del-row" onclick="deleteItem(${s.id})">❌</button>
+        </td>
+    </tr>`;
+});
+
+
+
+document.getElementById('sumIn').innerText = fMoney(si);
+
+document.getElementById('sumOut').innerText = fMoney(so);
+
+let prox = (start + si) - so;
+
+document.getElementById('resOut').innerText = fMoney(so);
+
+document.getElementById('resBal').innerText = fMoney(prox);
+
+document.getElementById('resEq').innerText = fMoney(so+prox);
+
+}
+
+
+
+function renderAnual() {
+
+document.getElementById('tablasContenedor').style.display = 'none';
+
+document.getElementById('vistaResumen').style.display = 'block';
+
+let b = document.getElementById('bodyResumen'); b.innerHTML = '';
+
+let ti=0, to=0, run=parseFloat(cajaActual.saldoInicial);
+
+M.forEach((m,i) => {
+
+let d = db.filter(x => x.cajaNombre === cajaActual.nombre && x.cajaYear === cajaActual.year && x.mIdx === i);
+
+let ei = d.filter(x=>x.type==='entrada').reduce((a,v)=>a+v.amount,0);
+
+let eo = d.filter(x=>x.type==='salida').reduce((a,v)=>a+v.amount,0);
+
+run = (run+ei)-eo; ti+=ei; to+=eo;
+
+b.innerHTML += `<tr><td>${m}</td><td class="money">${fMoney(ei)}</td><td class="money">${fMoney(eo)}</td><td class="money">${fMoney(run)}</td></tr>`;
+
+});
+
+document.getElementById('resAnualInit').innerText = fMoney(cajaActual.saldoInicial);
+
+document.getElementById('resAnualIn').innerText = fMoney(ti);
+
+document.getElementById('resAnualOut').innerText = fMoney(to);
+
+document.getElementById('resAnualFinal').innerText = fMoney(run);
+
+}
+
+
+
+async function syncToCloud(item) {
+
+try {
+
+await fetch(MI_LINK_FIJO, { method: 'POST', mode: 'no-cors', body: JSON.stringify({...item, sheet: `${item.cajaNombre}-${item.cajaYear}`}) });
+
+item.synced = true; saveDB(); renderMovimientos();
+
+} catch(e){}
+
+}
+
+
+
+function getBal(idx) {
+
+let b = parseFloat(cajaActual.saldoInicial);
+
+for(let i=0; i<idx; i++) {
+
+let m = db.filter(d => d.cajaNombre === cajaActual.nombre && d.cajaYear === cajaActual.year && d.mIdx === i);
+
+b = (b + m.filter(d=>d.type==='entrada').reduce((a,v)=>a+v.amount,0)) - m.filter(d=>d.type==='salida').reduce((a,v)=>a+v.amount,0);
+
+}
+
+return b;
+
+}
+
+
+
+function renderTabs() {
+
+let t = document.getElementById('tabsMeses'); t.innerHTML = '';
+
+M.forEach((m,i) => {
+
+let d = document.createElement('div'); d.className = `tab ${i===mesActual && !modoResumen?'active':''}`;
+
+d.innerText = m.substring(0,3); d.onclick = () => { mesActual=i; modoResumen=false; renderTabs(); renderMovimientos(); }; t.appendChild(d);
+
+});
+
+let r = document.createElement('div'); r.className = `tab ${modoResumen?'active':''}`; r.innerText = "RESUMEN"; r.style.background = "#fbbf24";
+
+r.onclick = () => { modoResumen=true; renderTabs(); renderAnual(); }; t.appendChild(r);
+
+}
+
+
+
+function saveDB() { localStorage.setItem('db_raum_v6', JSON.stringify(db)); }
+
+function setLoader(s, t) { document.getElementById('loader').style.display = s?'block':'none'; document.getElementById('loaderText').innerText = t; }
+
+
+function actualizarFechas() {
+
+let t = new Date().toISOString().split('T')[0];
+
+document.getElementById('inDate').value = t;
+
+document.getElementById('outDate').value = t;
+
+}
+
+async function generarPDF(id) {
+    const item = db.find(x => x.id === id);
+    if (!item) return;
+    const { jsPDF } = window.jspdf;
+
+    // Tamaño: 12 pulgadas ancho x 6 pulgadas alto (horizontal)
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'in', format: [12, 6] });
+
+    // Marco de la factura
+    doc.setDrawColor(0); doc.setLineWidth(0.02);
+    doc.roundedRect(0.2, 0.2, 11.6, 5.6, 0.1, 0.1);
+
+    // Título principal
+    doc.setFont("helvetica", "bold"); doc.setFontSize(35);
+    doc.text("FACTURA", 0.5, 0.8);
+
+    // Número de documento
+    doc.setFontSize(12); doc.text(`N°: ${item.id.toString().slice(-6)}`, 0.6, 1.2);
+
+    // Tus datos institucionales
+    doc.setFontSize(11); doc.text("DATOS IMPORTANTES", 6.5, 0.8);
+    doc.setFont("helvetica", "italic");
+    doc.text("Control de mivimiento y comprobante", 6.5, 1.1);
+    doc.setFont("helvetica", "normal");
+    doc.text([`Caja: ${cajaActual.nombre}`, `Tel: 5525 8033`, `Fecha: ${item.date}`], 6.5, 1.4);
+
+    // Encabezado de la tabla (Negro)
+    doc.setFillColor(0); doc.rect(0.5, 2.2, 11.0, 0.4, 'F');
+    doc.setTextColor(255); doc.text("DESCRIPCIÓN", 0.7, 2.45); doc.text("TOTAL", 10.5, 2.45);
+
+    // Contenido del movimiento
+    doc.setTextColor(0); doc.setFontSize(14);
+    doc.text(item.desc || "Sin descripción", 0.7, 3.0);
+    doc.text(fMoney(item.amount), 11.4, 3.0, { align: "right" });
+
+    // Cuadro de Total (Negro)
+    doc.setFillColor(0); doc.rect(8.5, 3.8, 3.0, 0.5, 'F');
+    doc.setTextColor(255); doc.setFontSize(18);
+    doc.text("TOTAL", 8.7, 4.15); doc.text(fMoney(item.amount), 11.4, 4.15, { align: "right" });
+
+    // Información de contacto y aprobación
+    doc.setTextColor(0); doc.setFontSize(9);
+    doc.text(["Aprobado por Tesorería comprobante generado", "WhatsApp: 5525 8033"], 0.7, 5.1);
+
+    // Generador de QR dinámico a tu WhatsApp
+    const qrDiv = document.createElement('div');
+    new QRCode(qrDiv, { text: `https://wa.me/50255258033?text=Doc_${item.id}`, width: 128, height: 128 });
+
+    setTimeout(() => {
+        const qrCanvas = qrDiv.querySelector("canvas");
+        if (qrCanvas) doc.addImage(qrCanvas.toDataURL("image/png"), 'PNG', 10.2, 4.5, 1.2, 1.2);
+        doc.save(`Factura_${item.id}.pdf`);
+    }, 400);
+}
+
+</script>
+
+</body>
+
+</html>
