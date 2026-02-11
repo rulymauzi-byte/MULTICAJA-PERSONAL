@@ -427,29 +427,31 @@ grid.appendChild(d);
 
 
 function abrirCaja(c) {
+    // Verificamos si la caja tiene una contraseña definida
+    if (c.password) {
+        let claveUsuario = prompt("Ingrese la contraseña para la caja '" + c.nombre + "':");
 
-cajaActual = c;
+        // Si cancela o la clave es incorrecta, no lo dejamos pasar
+        if (claveUsuario === null) return;
+        if (claveUsuario !== c.password) {
+            alert("Contraseña incorrecta. Acceso denegado.");
+            return;
+        }
+    }
 
-modoResumen = false;
+    // Si la clave es correcta o no tiene (para cajas viejas), entra normalmente
+    cajaActual = c;
+    modoResumen = false;
+    document.getElementById('vistaPrincipal').style.display = 'none';
+    document.getElementById('interfazCaja').style.display = 'block';
+    document.getElementById('cajaActivaTitulo').innerText = `${c.nombre} - ${c.year}`;
+    document.getElementById('initBal').value = c.saldoInicial;
+    document.getElementById('hojaContenido').style.display = 'none';
+    document.getElementById('cajaActivaTitulo').innerHTML = `${c.nombre} - ${c.year} <button onclick="cambiarPasswordCaja()" style="background:none; border:none; cursor:pointer; font-size:16px;" title="Cambiar Contraseña">⚙️</button>`;
 
-document.getElementById('vistaPrincipal').style.display = 'none';
-
-document.getElementById('interfazCaja').style.display = 'block';
-
-document.getElementById('cajaActivaTitulo').innerText = `${c.nombre} - ${c.year}`;
-
-document.getElementById('initBal').value = c.saldoInicial;
-
-document.getElementById('hojaContenido').style.display = 'none';
-
-document.getElementById('btnVerHoja').innerText = "👁️ Ver Movimientos y Reporte";
-
-actualizarFechas();
-
-renderTabs();
-
-renderMovimientos();
-
+    actualizarFechas();
+    renderTabs();
+    renderMovimientos();
 }
 
 
@@ -491,23 +493,30 @@ renderCajas();
 
 
 function nuevaCaja() {
+    // Primero validamos al administrador
+    if(prompt("Contraseña Admin:") !== PASS) return alert("No autorizado");
 
-if(prompt("Contraseña Admin:") !== PASS) return alert("No autorizado");
+    let n = prompt("Nombre de la nueva caja:");
+    if(!n) return;
 
-let n = prompt("Nombre de la caja:");
+    // Nueva línea para pedir la contraseña de la caja
+    let p = prompt("Defina la contraseña para esta caja:");
+    if(!p) return alert("Debe asignar una contraseña a la caja");
 
-if(!n) return;
+    let y = parseInt(document.getElementById('selectYear').value);
 
-let y = parseInt(document.getElementById('selectYear').value);
+    // Guardamos el nombre, año, saldo y la nueva CONTRASEÑA
+    cajasMetadata.push({
+        nombre: n,
+        year: y,
+        saldoInicial: 0,
+        password: p  // <-- Aquí se guarda la clave
+    });
 
-cajasMetadata.push({ nombre: n, year: y, saldoInicial: 0 });
-
-localStorage.setItem('cajas_meta_v6', JSON.stringify(cajasMetadata));
-
-renderCajas();
-
+    localStorage.setItem('cajas_meta_v6', JSON.stringify(cajasMetadata));
+    renderCajas();
+    alert("Caja '" + n + "' creada con éxito.");
 }
-
 
 
 function add(type) {
@@ -910,8 +919,30 @@ async function generarPDF(id) {
     }, 400);
 }
 
+function cambiarPasswordCaja() {
+    // 1. Validar que es el administrador principal
+    if (prompt("Contraseña Admin Principal:") !== PASS) {
+        return alert("No autorizado para cambiar contraseñas.");
+    }
+
+    // 2. Pedir la nueva contraseña
+    let nuevaClave = prompt("Ingrese la NUEVA contraseña para la caja '" + cajaActual.nombre + "':");
+
+    if (nuevaClave) {
+        // 3. Buscar la caja en los datos y actualizarla
+        const index = cajasMetadata.findIndex(c => c.nombre === cajaActual.nombre && c.year === cajaActual.year);
+        if (index !== -1) {
+            cajasMetadata[index].password = nuevaClave;
+            cajaActual.password = nuevaClave; // Actualizar también la caja abierta
+            localStorage.setItem('cajas_meta_v6', JSON.stringify(cajasMetadata));
+            alert("Contraseña de la caja actualizada con éxito.");
+        }
+    }
+}
+
 </script>
 
 </body>
 
 </html>
+
