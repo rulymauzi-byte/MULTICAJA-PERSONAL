@@ -1,7 +1,7 @@
 {
-  "name": "Raumauzi PRO Privado",
-  "short_name": "Raumauzi",
-  "description": "Sistema multicaja privado por usuario con facturación profesional.",
+  "name": "Raumauzi PRO Iglesias",
+  "short_name": "Raumauzi PRO",
+  "description": "Sistema profesional de tesorería multicaja para iglesias, con facturación personalizable y sincronización segura.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
