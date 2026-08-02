@@ -1,7 +1,7 @@
 {
-  "name": "Raumauzi PRO Iglesias",
-  "short_name": "Raumauzi PRO",
-  "description": "Sistema profesional de tesorería multicaja para iglesias, con facturación personalizable y sincronización segura.",
+  "name": "Multicaja Mauzi",
+  "short_name": "Mauzi",
+  "description": "Sistema profesional multicaja con facturación personalizable y sincronización segura.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

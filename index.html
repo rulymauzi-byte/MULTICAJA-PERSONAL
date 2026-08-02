@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<title>Raumauzi Multicaja PRO v9.1</title>
+<title>Multicaja Mauzi</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -70,15 +70,52 @@ thead th{background:#eee}
 #sumOut{color:#dc2626!important;font-weight:900!important;font-size:1rem}
 .settings-list{display:grid;gap:10px}.settings-action{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff}.settings-action div{min-width:0}.settings-action h4{margin:0 0 3px}.settings-action p{margin:0;color:var(--muted);font-size:.82rem}.danger-zone{border-color:#fecaca;background:#fffafa}.manage-status{font-weight:800;color:#166534}.manage-status.off{color:#64748b}
 @media(max-width:760px){.top-actions{max-width:none}.top-actions .btn-config{min-width:0}.back-main-btn{width:100%;margin-bottom:8px}.panel-title{flex-wrap:wrap}.settings-action{align-items:flex-start;flex-direction:column}.settings-action .btn{width:100%}}
+
+/* v9.4.2 — fondo profesional tipo libro de caja en pantalla de acceso */
+.auth-screen{
+  background-color:#f8fbff;
+  background-image:
+    linear-gradient(90deg, transparent 0 7.5%, rgba(194,36,48,.52) 7.5% 7.68%, transparent 7.68% 9.6%, rgba(194,36,48,.34) 9.6% 9.74%, transparent 9.74% 100%),
+    repeating-linear-gradient(0deg, transparent 0 27px, rgba(25,101,157,.32) 27px 28px),
+    linear-gradient(90deg, transparent 0 31%, rgba(25,101,157,.22) 31% 31.13%, transparent 31.13% 69%, rgba(25,101,157,.22) 69% 69.13%, transparent 69.13% 100%),
+    linear-gradient(135deg,rgba(255,255,255,.95),rgba(235,243,251,.92));
+  position:fixed;
+  overflow:auto;
+}
+.auth-screen::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.15),rgba(7,24,79,.05));
+}
+.auth-card{
+  position:relative;
+  z-index:1;
+  background:rgba(255,255,255,.965);
+  border:1px solid rgba(7,24,79,.20);
+  box-shadow:0 24px 70px rgba(7,24,79,.22),0 0 0 7px rgba(255,255,255,.55);
+  backdrop-filter:blur(3px);
+}
+@media(max-width:600px){
+  .auth-screen{
+    background-image:
+      linear-gradient(90deg, transparent 0 5.5%, rgba(194,36,48,.42) 5.5% 5.8%, transparent 5.8% 100%),
+      repeating-linear-gradient(0deg, transparent 0 25px, rgba(25,101,157,.28) 25px 26px),
+      linear-gradient(135deg,rgba(255,255,255,.96),rgba(235,243,251,.94));
+  }
+  .auth-card{box-shadow:0 18px 48px rgba(7,24,79,.20),0 0 0 4px rgba(255,255,255,.6)}
+}
+
 </style>
 </head>
 <body>
 <div id="authScreen" class="auth-screen">
   <div class="auth-card">
     <img src="logo.png" class="auth-logo" alt="Mauzi">
-    <h1 class="auth-title">Raumauzi PRO</h1>
+    <h1 class="auth-title">Multicaja Mauzi</h1>
     <p class="auth-sub">Acceso privado por usuario</p>
-    <div class="church-kicker">Tesorería y caja para iglesias</div>
+    <div class="church-kicker">Administración financiera profesional</div>
     <div class="field"><label>Nombre de usuario</label><input id="authUsername" autocomplete="username" placeholder="Ejemplo: mauzi"></div>
     <div class="field"><label>Contraseña</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="Su contraseña privada"></div><label style="display:flex;align-items:center;gap:9px;margin:10px 0 2px;font-size:.9rem;font-weight:700;color:#334155;cursor:pointer"><input id="rememberAccess" type="checkbox" checked style="width:auto;margin:0"> Recordar mi acceso en este teléfono</label>
     <button class="btn btn-primary btn-block" style="margin-top:10px" onclick="loginAccount()">🔐 Ingresar</button>
@@ -86,12 +123,12 @@ thead th{background:#eee}
     <button id="createUserBtn" class="btn btn-soft btn-block" style="margin-top:8px" onclick="createUserAccount()">➕ Crear una cuenta nueva</button>
     <button id="installBtn" class="btn btn-block auth-install hidden" onclick="triggerInstall()">📲 Instalar aplicación</button>
     
-    <p id="authMessage" class="auth-help">Cada cuenta ve únicamente sus propias cajas. La instalación está disponible antes de iniciar sesión.</p>
+    <p id="authMessage" class="auth-help">Acceda a su espacio de trabajo de forma rápida, organizada y segura.</p>
   </div>
 </div>
 <div class="loader" id="loader"><div class="loader-box"><div class="spinner"></div><h3 id="loaderText">Procesando…</h3></div></div>
 <div class="app auth-hidden" id="mainApp"><div class="shell">
-<header class="topbar"><div class="brand"><img src="logo.png" alt="Logo Mauzi"><div><h1>Raumauzi PRO</h1><small>Tesorería profesional para iglesias</small></div></div><div class="top-actions"><span id="userChip" class="user-chip">👤 Usuario</span><button class="btn btn-light btn-config" onclick="openTools()">⚙️ Configuración</button></div></header>
+<header class="topbar"><div class="brand"><img src="logo.png" alt="Logo Mauzi"><div><h1>Multicaja Mauzi</h1><small>Control financiero profesional</small></div></div><div class="top-actions"><span id="userChip" class="user-chip">👤 Usuario</span><button class="btn btn-light btn-config" onclick="openTools()">⚙️ Configuración</button></div></header>
 <main class="content">
 <div class="status-row"><strong id="yearDisplay">Panel fiscal</strong><div id="statusContainer" class="status online"><span class="dot"></span><span id="statusTxt">Online</span></div></div>
 <section id="vistaPrincipal">
@@ -104,7 +141,7 @@ thead th{background:#eee}
 <button id="btnVerHoja" class="btn btn-dark btn-block" style="margin:15px 0" onclick="toggleHoja()">👁 Ver movimientos y reporte</button>
 <div id="hojaContenido" class="hidden"><div class="panel"><div class="tabs" id="tabsMeses"></div><h3 id="monthHeader" style="text-align:center"></h3><div id="tablasContenedor"><div class="table-wrap"><table><thead><tr><th colspan="6" class="th-ent">ENTRADAS</th></tr><tr><th>Est.</th><th>Día</th><th>Concepto</th><th>Monto</th><th>Factura</th><th>Acción</th></tr></thead><tbody id="tbIn"></tbody><tfoot><tr><td colspan="3" class="money">SUMA:</td><td id="sumIn" class="money"></td><td colspan="2"></td></tr></tfoot></table></div><br><div class="table-wrap"><table><thead><tr><th colspan="6" class="th-sal">EGRESOS</th></tr><tr><th>Est.</th><th>Día</th><th>Concepto</th><th>Monto</th><th>Factura</th><th>Acción</th></tr></thead><tbody id="tbOut"></tbody><tfoot><tr><td colspan="3" class="money">SUMA:</td><td id="sumOut" class="money"></td><td colspan="2"></td></tr></tfoot></table></div><div class="totals"><div class="total-card"><span>Egresos</span><strong id="resOut"></strong></div><div class="total-card"><span>Saldo próximo</span><strong id="resBal"></strong></div><div class="total-card"><span>Iguales</span><strong id="resEq"></strong></div></div></div><div id="vistaResumen" class="hidden"><h3>Resumen anual</h3><div class="table-wrap"><table><thead><tr><th>Mes</th><th>Entradas</th><th>Salidas</th><th>Saldo</th></tr></thead><tbody id="bodyResumen"></tbody></table></div><div class="totals"><div class="total-card"><span>Saldo inicial</span><strong id="resAnualInit"></strong></div><div class="total-card"><span>Total ingresos</span><strong id="resAnualIn"></strong></div><div class="total-card"><span>Total egresos</span><strong id="resAnualOut"></strong></div><div class="total-card"><span>Saldo final</span><strong id="resAnualFinal"></strong></div></div></div></div></div>
 </section>
-</main><div class="footer-note">Raumauzi PRO · almacenamiento local seguro + sincronización con Google</div></div></div>
+</main><div class="footer-note">Multicaja Mauzi · organización, control y respaldo de información</div></div></div>
 
 <div class="modal-backdrop" id="invoiceModal"><div class="modal"><div class="modal-head"><h3>Diseño de factura</h3><button class="icon-btn" onclick="closeModal('invoiceModal')">✕</button></div><div class="modal-body"><div class="modal-grid"><div class="field"><label>Nombre de iglesia / institución</label><input id="cfgBusiness" oninput="updateInvoicePreview()"></div><div class="field"><label>NIT / identificación</label><input id="cfgTaxId" oninput="updateInvoicePreview()"></div><div class="field"><label>Teléfono / WhatsApp</label><input id="cfgPhone" oninput="updateInvoicePreview()"></div><div class="field"><label>Dirección</label><input id="cfgAddress" oninput="updateInvoicePreview()"></div><div class="field"><label>Correo</label><input id="cfgEmail" oninput="updateInvoicePreview()"></div><div class="field"><label>Encargado / tesorería</label><input id="cfgManager" oninput="updateInvoicePreview()"></div><div class="field"><label>Estilo blanco y negro</label><select id="cfgStyle" onchange="updateInvoicePreview()"><option value="bw1">1. Ejecutivo negro y gris</option><option value="bw2">2. Contable corporativo</option><option value="bw3">3. Marco doble premium</option><option value="bw4">4. Encabezado negro fuerte</option><option value="bw5">5. Minimalista profesional</option></select></div><div class="field"><label>Tamaño</label><select id="cfgFormat" onchange="updateInvoicePreview()"><option value="letter-landscape">Carta horizontal</option><option value="letter-portrait">Carta vertical</option><option value="a4-portrait">A4 vertical</option><option value="a4-landscape">A4 horizontal</option><option value="half-letter">Media carta</option></select></div><div class="field"><label>Título del documento</label><input id="cfgTitle" oninput="updateInvoicePreview()"></div><div class="field"><label>Texto final</label><input id="cfgFooter" oninput="updateInvoicePreview()"></div></div><div class="logo-picker"><img id="cfgLogoPreview" src="logo.png" alt="Logo de factura"><div><label style="display:flex;gap:8px;margin-bottom:8px"><input type="checkbox" id="cfgLogo" style="width:auto" onchange="updateInvoicePreview()"> Mostrar logotipo</label><input type="file" id="cfgLogoFile" accept="image/png,image/jpeg,image/webp" onchange="selectInvoiceLogo(event)"><button class="btn btn-soft" style="margin-top:7px" onclick="useDefaultInvoiceLogo()">Usar logo Mauzi</button><p class="auth-help">Puede elegir el logotipo propio de cada iglesia. No cambia el logo general de la aplicación.</p></div></div><div class="invoice-preview-title">Vista previa de la factura</div><div id="invoicePreview" class="preview"></div><div class="actions-grid" style="grid-template-columns:1fr 1fr;margin-top:14px"><button class="btn btn-soft" onclick="closeModal('invoiceModal')">Cancelar</button><button class="btn btn-primary" onclick="saveInvoiceSettings()">Guardar diseño</button></div></div></div></div>
 <div class="modal-backdrop" id="toolsModal"><div class="modal"><div class="modal-head"><h3>Configuración</h3><button class="icon-btn" onclick="closeModal('toolsModal')">✕</button></div><div class="modal-body"><div class="settings-list">
@@ -122,10 +159,10 @@ thead th{background:#eee}
 const MI_LINK_FIJO="https://script.google.com/macros/s/AKfycbzdzPDp5m41vMn-OyGA8CxTFZHHLbH3V0LVN7HWp6VZi05UcSCnGj0N-uMAt4S_ApZC8Q/exec";
 const DEFAULT_OWNER_KEY='d41c57e51278a5b41a496d2f';
 const M=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-const K_DB='db_raum_v9',K_META='cajas_meta_v9',K_CFG='invoice_cfg_v2',K_TOMBS='raum_tombstones_v2',K_BACK='raum_auto_backup_v3',K_SESSION='raum_session_v1',K_REMEMBERED='raum_remembered_session_v93',K_USERS='raum_users_v1',K_ARCHIVED='raum_archived_boxes_v1';
+const K_DB='db_raum_v9',K_META='cajas_meta_v9',K_CFG='invoice_cfg_v2',K_TOMBS='raum_tombstones_v2',K_BACK='raum_auto_backup_v3',K_SESSION='raum_session_v1',K_REMEMBERED='raum_remembered_session_v94',K_USERS='raum_users_v1',K_ARCHIVED='raum_archived_boxes_v1';
 const deviceId=localStorage.getItem('raum_device_id')||(()=>{const v='dev-'+Date.now()+'-'+Math.random().toString(36).slice(2);localStorage.setItem('raum_device_id',v);return v})();
 let db=[],cajasMetadata=[],tombstones=[],cajaActual=null,mesActual=new Date().getMonth(),modoResumen=false,deferredPrompt=null,currentUser=null,pendingInvoiceLogo=null,manageBoxesMode=false;
-const DEFAULT_INVOICE_CFG={business:'Raumauzi',taxId:'',phone:'5525 8033',address:'Guatemala',email:'',manager:'Tesorería',style:'bw1',format:'letter-landscape',title:'COMPROBANTE',footer:'Documento generado por Raumauzi PRO',logo:true,logoData:''};
+const DEFAULT_INVOICE_CFG={business:'Raumauzi',taxId:'',phone:'5525 8033',address:'Guatemala',email:'',manager:'Tesorería',style:'bw1',format:'letter-landscape',title:'COMPROBANTE',footer:'Documento generado por Multicaja Mauzi',logo:true,logoData:''};
 let invoiceCfg={...DEFAULT_INVOICE_CFG};
 function invoiceStorageKey(){return currentUser?`${K_CFG}_${currentUser.ownerKey}`:K_CFG}
 function loadInvoiceSettingsForCurrentUser(){const key=invoiceStorageKey();let saved=JSON.parse(localStorage.getItem(key)||'null');invoiceCfg={...DEFAULT_INVOICE_CFG,...(saved||{})};if(saved)localStorage.setItem(key,JSON.stringify(invoiceCfg))}
@@ -191,31 +228,60 @@ function invoiceHtml(cfg,item){const style=String(cfg.style||'bw1').replace('bw'
 function updateInvoicePreview(){document.getElementById('invoicePreview').innerHTML=invoiceHtml(invoiceDraft(),null)}
 function openTools(){openModal('toolsModal')}function openModal(id){document.getElementById(id).classList.add('open')}function closeModal(id){document.getElementById(id).classList.remove('open')}
 function setLoader(show,text='Procesando…'){document.getElementById('loader').classList.toggle('open',!!show);document.getElementById('loaderText').textContent=text}
-function exportBackup(){const blob=new Blob([JSON.stringify({version:'9.2',exportedAt:new Date().toISOString(),db,cajasMetadata,tombstones,invoiceCfg},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Raumauzi_v9.2_Respaldo_${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href)}
+function exportBackup(){const blob=new Blob([JSON.stringify({version:'9.2',exportedAt:new Date().toISOString(),db,cajasMetadata,tombstones,invoiceCfg},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Multicaja_Mauzi_Respaldo_${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href)}
 function importBackup(ev){const file=ev.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!Array.isArray(x.db)||!Array.isArray(x.cajasMetadata))throw Error();if(!confirm('Esto combinará el respaldo con los datos actuales. ¿Continuar?'))return;db=mergeCloud(db,x.db);for(const c of x.cajasMetadata){if(!cajasMetadata.some(a=>a.nombre===c.nombre&&+a.year===+c.year))cajasMetadata.push(c)}tombstones=[...tombstones,...(x.tombstones||[])];invoiceCfg={...invoiceCfg,...(x.invoiceCfg||{})};saveAll();localStorage.setItem(invoiceStorageKey(),JSON.stringify(invoiceCfg));renderCajas();alert('Respaldo restaurado y combinado para esta cuenta.')}catch{alert('El archivo no es un respaldo válido.')}};r.readAsText(file);ev.target.value=''}
 
 async function hashText(text){const data=new TextEncoder().encode(text);const hash=await crypto.subtle.digest('SHA-256',data);return [...new Uint8Array(hash)].map(b=>b.toString(16).padStart(2,'0')).join('')}
 function normalizeUser(v){return String(v||'').trim().toLowerCase().replace(/\s+/g,'')}
 function normalizeRecovery(v){return String(v||'').trim().toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ')}
 async function recoveryHash(v){return hashText('RAUMAUZI-RECOVERY|'+normalizeRecovery(v))}
+async function passwordHash(username,password){return hashText('RAUMAUZI-PASSWORD|'+normalizeUser(username)+'|'+String(password||''))}
 async function deriveOwnerKey(username,password){return (await hashText('RAUMAUZI|'+normalizeUser(username)+'|'+password)).slice(0,24)}
+function newOwnerKey(){const a=new Uint8Array(16);crypto.getRandomValues(a);return [...a].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,24)}
+async function validatePassword(user,password){
+ if(!user)return false;
+ const h=await passwordHash(user.username,password);
+ if(user.passwordHash&&user.passwordHash===h)return true;
+ const legacyKey=await deriveOwnerKey(user.username,password);
+ if(legacyKey===user.ownerKey)return true;
+ // Compatibilidad de la cuenta principal creada en versiones anteriores.
+ if(user.username==='mauzi'&&user.ownerKey===DEFAULT_OWNER_KEY&&String(password)==='123ra')return true;
+ return false;
+}
+async function savePasswordForUser(username,password){
+ let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
+ const h=await passwordHash(username,password);
+ users=users.map(u=>u.username===username?{...u,passwordHash:h,updatedAt:new Date().toISOString()}:u);
+ localStorage.setItem(K_USERS,JSON.stringify(users));
+}
 async function initSecurity(){
  const defaultKey=DEFAULT_OWNER_KEY;
  let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
+ users=users.map(u=>({...u,username:normalizeUser(u.username)})).filter(u=>u.username);
  if(!users.some(u=>u.username==='mauzi'))users.push({username:'mauzi',ownerKey:defaultKey,createdAt:new Date().toISOString(),initial:true});
  let usersChanged=false;
  for(let i=0;i<users.length;i++){
+   if(!users[i].ownerKey){users[i]={...users[i],ownerKey:users[i].username==='mauzi'?defaultKey:newOwnerKey()};usersChanged=true;}
    if(!users[i].recoveryHash){users[i]={...users[i],recoveryHash:await recoveryHash(users[i].username)};usersChanged=true;}
  }
+ // Elimina registros repetidos sin tocar la cuenta que conserva las cajas.
+ const unique=[];for(const u of users){const old=unique.find(x=>x.username===u.username);if(!old)unique.push(u);else if(!old.passwordHash&&u.passwordHash)Object.assign(old,u)}
+ users=unique;
  if(usersChanged||users.length)localStorage.setItem(K_USERS,JSON.stringify(users));
  let changed=false;
  cajasMetadata=cajasMetadata.map(c=>{if(!c.ownerKey||c.ownerKey==='legacy'||c.ownerKey==='admin'){changed=true;return{...c,ownerKey:defaultKey,ownerName:'mauzi'}}return c});
  db=db.map(x=>{if(!x.ownerKey||x.ownerKey==='legacy'||x.ownerKey==='admin'){changed=true;return{...x,ownerKey:defaultKey,ownerName:'mauzi'}}return x});
  if(changed)saveAll();
  const saved=JSON.parse(sessionStorage.getItem(K_SESSION)||'null');
- const remembered=JSON.parse(localStorage.getItem(K_REMEMBERED)||'null');
- const access=saved&&saved.ownerKey?saved:(remembered&&remembered.ownerKey?remembered:null);
- if(access){currentUser=access;sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));enterApp()}else showAuth();
+ const rememberedKeys=[K_REMEMBERED,'raum_remembered_session_v93','raum_remembered_session_v92'];
+ let remembered=null;
+ for(const k of rememberedKeys){try{const x=JSON.parse(localStorage.getItem(k)||'null');if(x&&x.ownerKey){remembered=x;break}}catch{}}
+ const access=saved&&saved.ownerKey?saved:remembered;
+ if(access){
+   const user=users.find(u=>u.username===normalizeUser(access.username)&&u.ownerKey===access.ownerKey);
+   if(user){currentUser={role:'user',username:user.username,ownerKey:user.ownerKey};sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));enterApp()}
+   else showAuth();
+ }else showAuth();
  updateInstallButton();
 }
 async function createUserAccount(){
@@ -228,8 +294,8 @@ async function createUserAccount(){
  if(keyword===null)return;
  keyword=normalizeRecovery(keyword||username);
  if(keyword.length<2)return alert('La palabra clave debe tener al menos 2 caracteres.');
- const ownerKey=await deriveOwnerKey(username,password);
- users.push({username,ownerKey,recoveryHash:await recoveryHash(keyword),createdAt:new Date().toISOString()});
+ const ownerKey=newOwnerKey();
+ users.push({username,ownerKey,passwordHash:await passwordHash(username,password),recoveryHash:await recoveryHash(keyword),createdAt:new Date().toISOString()});
  localStorage.setItem(K_USERS,JSON.stringify(users));
  currentUser={role:'user',username,ownerKey};
  sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));
@@ -237,16 +303,18 @@ async function createUserAccount(){
  enterApp();
  alert('Cuenta creada correctamente. Su palabra clave permitirá recuperar la contraseña en este teléfono.');
 }
-async function loginAccount(){const username=normalizeUser(authUsername.value),password=authPassword.value;if(!username||!password)return alert('Escriba usuario y contraseña.');const ownerKey=await deriveOwnerKey(username,password);const users=JSON.parse(localStorage.getItem(K_USERS)||'[]');const valid=users.some(u=>u.username===username&&u.ownerKey===ownerKey);if(!valid)return alert('Usuario o contraseña incorrectos.');currentUser={role:'user',username,ownerKey};sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));if(document.getElementById('rememberAccess')?.checked)localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));else localStorage.removeItem(K_REMEMBERED);enterApp()}
-async function migrateAccountKey(username,oldKey,newKey){
+async function loginAccount(){
+ const username=normalizeUser(authUsername.value),password=authPassword.value;
+ if(!username||!password)return alert('Escriba usuario y contraseña.');
  let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
- users=users.map(u=>u.username===username?{...u,ownerKey:newKey,updatedAt:new Date().toISOString()}:u);
- localStorage.setItem(K_USERS,JSON.stringify(users));
- cajasMetadata=cajasMetadata.map(c=>c.ownerKey===oldKey?{...c,ownerKey:newKey,ownerName:username}:c);
- db=db.map(x=>x.ownerKey===oldKey?{...x,ownerKey:newKey,ownerName:username,synced:false,updatedAt:Date.now()}:x);
- const oldCfg=localStorage.getItem(`${K_CFG}_${oldKey}`);
- if(oldCfg){localStorage.setItem(`${K_CFG}_${newKey}`,oldCfg);localStorage.removeItem(`${K_CFG}_${oldKey}`)}
- saveAll();
+ const user=users.find(u=>u.username===username);
+ if(!user||!(await validatePassword(user,password)))return alert('Usuario o contraseña incorrectos.');
+ // Al entrar con una contraseña antigua válida, se agrega el nuevo sistema sin cambiar sus cajas.
+ if(!user.passwordHash)await savePasswordForUser(username,password);
+ currentUser={role:'user',username:user.username,ownerKey:user.ownerKey};
+ sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));
+ if(document.getElementById('rememberAccess')?.checked)localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));else localStorage.removeItem(K_REMEMBERED);
+ enterApp();
 }
 async function recoverAccount(){
  const username=normalizeUser(prompt('Escriba su nombre de usuario:','')||'');
@@ -262,13 +330,13 @@ async function recoverAccount(){
  if(!next||next.length<5)return alert('La nueva contraseña debe tener al menos 5 caracteres.');
  const confirmPass=prompt('Repita la nueva contraseña:','');
  if(next!==confirmPass)return alert('Las contraseñas no coinciden.');
- const newKey=await deriveOwnerKey(username,next);
- await migrateAccountKey(username,user.ownerKey,newKey);
- currentUser={role:'user',username,ownerKey:newKey};
+ // Solo cambia la contraseña. El identificador de la cuenta y todas sus cajas permanecen iguales.
+ await savePasswordForUser(username,next);
+ currentUser={role:'user',username:user.username,ownerKey:user.ownerKey};
  sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));
  if(document.getElementById('rememberAccess')?.checked)localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));else localStorage.removeItem(K_REMEMBERED);
  enterApp();
- alert('Contraseña recuperada correctamente. Ya puede entrar con la nueva contraseña.');
+ alert('Contraseña recuperada correctamente. Sus cajas y datos permanecen sin cambios.');
 }
 async function setRecoveryKeyword(){
  if(!currentUser)return;
@@ -288,19 +356,18 @@ function logoutAccount(){if(!confirm('¿Cerrar sesión?'))return;cajaActual=null
 async function changeUserPassword(){
  if(!currentUser)return;
  const oldPass=prompt('Contraseña actual:');if(oldPass===null)return;
- const oldKey=await deriveOwnerKey(currentUser.username,oldPass);
- if(oldKey!==currentUser.ownerKey)return alert('La contraseña actual es incorrecta.');
+ let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
+ const user=users.find(u=>u.username===currentUser.username);
+ if(!user||!(await validatePassword(user,oldPass)))return alert('La contraseña actual es incorrecta.');
  const next=prompt('Nueva contraseña (mínimo 5 caracteres):');
  if(!next||next.length<5)return alert('La nueva contraseña debe tener al menos 5 caracteres.');
  const confirmPass=prompt('Repita la nueva contraseña:');
  if(next!==confirmPass)return alert('Las contraseñas no coinciden.');
- const newKey=await deriveOwnerKey(currentUser.username,next);
- await migrateAccountKey(currentUser.username,oldKey,newKey);
- currentUser={role:'user',username:currentUser.username,ownerKey:newKey};
+ await savePasswordForUser(currentUser.username,next);
+ // No se modifica ownerKey: las cajas, movimientos y factura siguen asociados a la misma cuenta.
  sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));
  if(localStorage.getItem(K_REMEMBERED))localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));
- renderCajas();
- alert('Contraseña actualizada correctamente.');
+ alert('Contraseña actualizada correctamente. Sus cajas permanecen intactas.');
 }
 
 function pdfSpec(format){if(format==='letter-portrait')return{orientation:'portrait',unit:'mm',format:'letter'};if(format==='a4-portrait')return{orientation:'portrait',unit:'mm',format:'a4'};if(format==='a4-landscape')return{orientation:'landscape',unit:'mm',format:'a4'};if(format==='half-letter')return{orientation:'portrait',unit:'mm',format:[139.7,215.9]};return{orientation:'landscape',unit:'mm',format:'letter'}}
