@@ -71,40 +71,56 @@ thead th{background:#eee}
 .settings-list{display:grid;gap:10px}.settings-action{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff}.settings-action div{min-width:0}.settings-action h4{margin:0 0 3px}.settings-action p{margin:0;color:var(--muted);font-size:.82rem}.danger-zone{border-color:#fecaca;background:#fffafa}.manage-status{font-weight:800;color:#166534}.manage-status.off{color:#64748b}
 @media(max-width:760px){.top-actions{max-width:none}.top-actions .btn-config{min-width:0}.back-main-btn{width:100%;margin-bottom:8px}.panel-title{flex-wrap:wrap}.settings-action{align-items:flex-start;flex-direction:column}.settings-action .btn{width:100%}}
 
-/* v9.4.2 — fondo profesional tipo libro de caja en pantalla de acceso */
+/* v9.4.3 — líneas del libro de caja dentro del panel blanco, detrás del logo y textos */
 .auth-screen{
-  background-color:#f8fbff;
-  background-image:
-    linear-gradient(90deg, transparent 0 7.5%, rgba(194,36,48,.52) 7.5% 7.68%, transparent 7.68% 9.6%, rgba(194,36,48,.34) 9.6% 9.74%, transparent 9.74% 100%),
-    repeating-linear-gradient(0deg, transparent 0 27px, rgba(25,101,157,.32) 27px 28px),
-    linear-gradient(90deg, transparent 0 31%, rgba(25,101,157,.22) 31% 31.13%, transparent 31.13% 69%, rgba(25,101,157,.22) 69% 69.13%, transparent 69.13% 100%),
-    linear-gradient(135deg,rgba(255,255,255,.95),rgba(235,243,251,.92));
+  background:linear-gradient(145deg,#06164a,#0d6035);
   position:fixed;
   overflow:auto;
 }
-.auth-screen::before{
+.auth-screen::before{display:none!important}
+.auth-card{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  background:#fff;
+  border:1px solid rgba(7,24,79,.18);
+  box-shadow:0 24px 70px rgba(0,0,0,.28);
+}
+.auth-card::before{
   content:"";
   position:absolute;
   inset:0;
+  z-index:-2;
   pointer-events:none;
-  background:linear-gradient(180deg,rgba(255,255,255,.15),rgba(7,24,79,.05));
+  background-color:#fff;
+  background-image:
+    linear-gradient(90deg,transparent 0 8%,rgba(188,35,47,.24) 8% 8.35%,transparent 8.35% 11%,rgba(188,35,47,.15) 11% 11.22%,transparent 11.22% 100%),
+    repeating-linear-gradient(0deg,transparent 0 27px,rgba(25,101,157,.16) 27px 28px),
+    linear-gradient(90deg,transparent 0 34%,rgba(25,101,157,.11) 34% 34.22%,transparent 34.22% 69%,rgba(25,101,157,.11) 69% 69.22%,transparent 69.22% 100%);
 }
-.auth-card{
-  position:relative;
-  z-index:1;
-  background:rgba(255,255,255,.965);
-  border:1px solid rgba(7,24,79,.20);
-  box-shadow:0 24px 70px rgba(7,24,79,.22),0 0 0 7px rgba(255,255,255,.55);
-  backdrop-filter:blur(3px);
+.auth-card::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  background:rgba(255,255,255,.66);
+}
+.auth-card>*{position:relative;z-index:1}
+.auth-logo{filter:drop-shadow(0 5px 9px rgba(7,24,79,.16))}
+.auth-title,.auth-sub,.auth-help,.auth-card label{position:relative}
+.auth-card .field input{
+  background:rgba(255,255,255,.94);
+  border-color:#aebdce;
+  box-shadow:0 1px 0 rgba(255,255,255,.9);
 }
 @media(max-width:600px){
-  .auth-screen{
+  .auth-card::before{
     background-image:
-      linear-gradient(90deg, transparent 0 5.5%, rgba(194,36,48,.42) 5.5% 5.8%, transparent 5.8% 100%),
-      repeating-linear-gradient(0deg, transparent 0 25px, rgba(25,101,157,.28) 25px 26px),
-      linear-gradient(135deg,rgba(255,255,255,.96),rgba(235,243,251,.94));
+      linear-gradient(90deg,transparent 0 6%,rgba(188,35,47,.20) 6% 6.35%,transparent 6.35% 100%),
+      repeating-linear-gradient(0deg,transparent 0 25px,rgba(25,101,157,.14) 25px 26px);
   }
-  .auth-card{box-shadow:0 18px 48px rgba(7,24,79,.20),0 0 0 4px rgba(255,255,255,.6)}
+  .auth-card{box-shadow:0 18px 48px rgba(0,0,0,.25)}
 }
 
 </style>
@@ -228,7 +244,7 @@ function invoiceHtml(cfg,item){const style=String(cfg.style||'bw1').replace('bw'
 function updateInvoicePreview(){document.getElementById('invoicePreview').innerHTML=invoiceHtml(invoiceDraft(),null)}
 function openTools(){openModal('toolsModal')}function openModal(id){document.getElementById(id).classList.add('open')}function closeModal(id){document.getElementById(id).classList.remove('open')}
 function setLoader(show,text='Procesando…'){document.getElementById('loader').classList.toggle('open',!!show);document.getElementById('loaderText').textContent=text}
-function exportBackup(){const blob=new Blob([JSON.stringify({version:'9.2',exportedAt:new Date().toISOString(),db,cajasMetadata,tombstones,invoiceCfg},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Multicaja_Mauzi_Respaldo_${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href)}
+function exportBackup(){const blob=new Blob([JSON.stringify({version:'9.4.3',exportedAt:new Date().toISOString(),db,cajasMetadata,tombstones,invoiceCfg},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Multicaja_Mauzi_Respaldo_${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href)}
 function importBackup(ev){const file=ev.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!Array.isArray(x.db)||!Array.isArray(x.cajasMetadata))throw Error();if(!confirm('Esto combinará el respaldo con los datos actuales. ¿Continuar?'))return;db=mergeCloud(db,x.db);for(const c of x.cajasMetadata){if(!cajasMetadata.some(a=>a.nombre===c.nombre&&+a.year===+c.year))cajasMetadata.push(c)}tombstones=[...tombstones,...(x.tombstones||[])];invoiceCfg={...invoiceCfg,...(x.invoiceCfg||{})};saveAll();localStorage.setItem(invoiceStorageKey(),JSON.stringify(invoiceCfg));renderCajas();alert('Respaldo restaurado y combinado para esta cuenta.')}catch{alert('El archivo no es un respaldo válido.')}};r.readAsText(file);ev.target.value=''}
 
 async function hashText(text){const data=new TextEncoder().encode(text);const hash=await crypto.subtle.digest('SHA-256',data);return [...new Uint8Array(hash)].map(b=>b.toString(16).padStart(2,'0')).join('')}
@@ -242,45 +258,70 @@ async function validatePassword(user,password){
  if(!user)return false;
  const h=await passwordHash(user.username,password);
  if(user.passwordHash&&user.passwordHash===h)return true;
+ if(Array.isArray(user.passwordHashes)&&user.passwordHashes.includes(h))return true;
  const legacyKey=await deriveOwnerKey(user.username,password);
  if(legacyKey===user.ownerKey)return true;
- // Compatibilidad de la cuenta principal creada en versiones anteriores.
+ if(Array.isArray(user.ownerKeys)&&user.ownerKeys.includes(legacyKey))return true;
+ // Compatibilidad de la cuenta principal original.
  if(user.username==='mauzi'&&user.ownerKey===DEFAULT_OWNER_KEY&&String(password)==='123ra')return true;
  return false;
 }
-async function savePasswordForUser(username,password){
- let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
- const h=await passwordHash(username,password);
- users=users.map(u=>u.username===username?{...u,passwordHash:h,updatedAt:new Date().toISOString()}:u);
+function userDataOwnerKeys(username){
+ const name=normalizeUser(username),keys=new Set();
+ for(const c of cajasMetadata){if(normalizeUser(c.ownerName)===name&&c.ownerKey)keys.add(c.ownerKey)}
+ for(const x of db){if(normalizeUser(x.ownerName)===name&&x.ownerKey)keys.add(x.ownerKey)}
+ return [...keys];
+}
+function preferredOwnerKey(username,candidates=[]){
+ const name=normalizeUser(username),score=new Map();
+ const add=(key,n=1)=>{if(key)score.set(key,(score.get(key)||0)+n)};
+ for(const c of cajasMetadata){if(normalizeUser(c.ownerName)===name)add(c.ownerKey,5)}
+ for(const x of db){if(normalizeUser(x.ownerName)===name)add(x.ownerKey,1)}
+ for(const u of candidates)add(u.ownerKey,0.1);
+ if(name==='mauzi')add(DEFAULT_OWNER_KEY,0.05);
+ return [...score.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]||candidates[0]?.ownerKey||(name==='mauzi'?DEFAULT_OWNER_KEY:newOwnerKey());
+}
+async function savePasswordForUser(username,password,ownerKeyOverride=null){
+ const name=normalizeUser(username),h=await passwordHash(name,password);
+ let users=JSON.parse(localStorage.getItem(K_USERS)||'[]').map(u=>({...u,username:normalizeUser(u.username)}));
+ const matches=users.filter(u=>u.username===name);
+ const ownerKey=ownerKeyOverride||preferredOwnerKey(name,matches);
+ const hashes=new Set(matches.flatMap(u=>[u.passwordHash,...(u.passwordHashes||[])]).filter(Boolean));hashes.add(h);
+ const recovery=matches.find(u=>u.recoveryHash)?.recoveryHash||await recoveryHash(name);
+ users=users.filter(u=>u.username!==name);
+ users.push({username:name,ownerKey,passwordHash:h,passwordHashes:[...hashes],ownerKeys:[...new Set([ownerKey,...matches.map(u=>u.ownerKey),...matches.flatMap(u=>u.ownerKeys||[]),...userDataOwnerKeys(name)].filter(Boolean))],recoveryHash:recovery,updatedAt:new Date().toISOString()});
  localStorage.setItem(K_USERS,JSON.stringify(users));
+ return users[users.length-1];
 }
 async function initSecurity(){
  const defaultKey=DEFAULT_OWNER_KEY;
- let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
- users=users.map(u=>({...u,username:normalizeUser(u.username)})).filter(u=>u.username);
+ let users=JSON.parse(localStorage.getItem(K_USERS)||'[]').map(u=>({...u,username:normalizeUser(u.username)})).filter(u=>u.username);
  if(!users.some(u=>u.username==='mauzi'))users.push({username:'mauzi',ownerKey:defaultKey,createdAt:new Date().toISOString(),initial:true});
- let usersChanged=false;
- for(let i=0;i<users.length;i++){
-   if(!users[i].ownerKey){users[i]={...users[i],ownerKey:users[i].username==='mauzi'?defaultKey:newOwnerKey()};usersChanged=true;}
-   if(!users[i].recoveryHash){users[i]={...users[i],recoveryHash:await recoveryHash(users[i].username)};usersChanged=true;}
+ // Conserva todos los accesos antiguos agrupando claves y hashes, sin perder compatibilidad.
+ const grouped=new Map();
+ for(const u of users){
+   const name=u.username;if(!grouped.has(name))grouped.set(name,[]);grouped.get(name).push(u);
  }
- // Elimina registros repetidos sin tocar la cuenta que conserva las cajas.
- const unique=[];for(const u of users){const old=unique.find(x=>x.username===u.username);if(!old)unique.push(u);else if(!old.passwordHash&&u.passwordHash)Object.assign(old,u)}
- users=unique;
- if(usersChanged||users.length)localStorage.setItem(K_USERS,JSON.stringify(users));
+ const merged=[];
+ for(const [name,list] of grouped){
+   const ownerKey=preferredOwnerKey(name,list);
+   const passwordHashes=[...new Set(list.flatMap(u=>[u.passwordHash,...(u.passwordHashes||[])]).filter(Boolean))];
+   const ownerKeys=[...new Set([ownerKey,...list.map(u=>u.ownerKey),...list.flatMap(u=>u.ownerKeys||[]),...userDataOwnerKeys(name)].filter(Boolean))];
+   merged.push({...list[0],username:name,ownerKey,passwordHash:list.find(u=>u.passwordHash)?.passwordHash||'',passwordHashes,ownerKeys,recoveryHash:list.find(u=>u.recoveryHash)?.recoveryHash||await recoveryHash(name)});
+ }
+ users=merged;localStorage.setItem(K_USERS,JSON.stringify(users));
  let changed=false;
  cajasMetadata=cajasMetadata.map(c=>{if(!c.ownerKey||c.ownerKey==='legacy'||c.ownerKey==='admin'){changed=true;return{...c,ownerKey:defaultKey,ownerName:'mauzi'}}return c});
  db=db.map(x=>{if(!x.ownerKey||x.ownerKey==='legacy'||x.ownerKey==='admin'){changed=true;return{...x,ownerKey:defaultKey,ownerName:'mauzi'}}return x});
  if(changed)saveAll();
  const saved=JSON.parse(sessionStorage.getItem(K_SESSION)||'null');
- const rememberedKeys=[K_REMEMBERED,'raum_remembered_session_v93','raum_remembered_session_v92'];
- let remembered=null;
- for(const k of rememberedKeys){try{const x=JSON.parse(localStorage.getItem(k)||'null');if(x&&x.ownerKey){remembered=x;break}}catch{}}
+ const rememberedKeys=[K_REMEMBERED,'raum_remembered_session_v94','raum_remembered_session_v93','raum_remembered_session_v92'];
+ let remembered=null;for(const k of rememberedKeys){try{const x=JSON.parse(localStorage.getItem(k)||'null');if(x&&x.ownerKey){remembered=x;break}}catch{}}
  const access=saved&&saved.ownerKey?saved:remembered;
  if(access){
-   const user=users.find(u=>u.username===normalizeUser(access.username)&&u.ownerKey===access.ownerKey);
-   if(user){currentUser={role:'user',username:user.username,ownerKey:user.ownerKey};sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));enterApp()}
-   else showAuth();
+   const list=users.filter(u=>u.username===normalizeUser(access.username));
+   const user=list.find(u=>u.ownerKey===access.ownerKey||(u.ownerKeys||[]).includes(access.ownerKey));
+   if(user){currentUser={role:'user',username:user.username,ownerKey:access.ownerKey};sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));enterApp()}else showAuth();
  }else showAuth();
  updateInstallButton();
 }
@@ -306,12 +347,21 @@ async function createUserAccount(){
 async function loginAccount(){
  const username=normalizeUser(authUsername.value),password=authPassword.value;
  if(!username||!password)return alert('Escriba usuario y contraseña.');
- let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
- const user=users.find(u=>u.username===username);
- if(!user||!(await validatePassword(user,password)))return alert('Usuario o contraseña incorrectos.');
- // Al entrar con una contraseña antigua válida, se agrega el nuevo sistema sin cambiar sus cajas.
- if(!user.passwordHash)await savePasswordForUser(username,password);
- currentUser={role:'user',username:user.username,ownerKey:user.ownerKey};
+ let users=JSON.parse(localStorage.getItem(K_USERS)||'[]').map(u=>({...u,username:normalizeUser(u.username)}));
+ const candidates=users.filter(u=>u.username===username);
+ let user=null;
+ for(const candidate of candidates){if(await validatePassword(candidate,password)){user=candidate;break}}
+ const legacyKey=await deriveOwnerKey(username,password);
+ // Recupera acceso antiguo aunque una versión anterior haya dejado mal el registro del usuario.
+ if(!user){
+   const dataKeys=userDataOwnerKeys(username);
+   if(dataKeys.includes(legacyKey))user={username,ownerKey:legacyKey};
+   else if(username==='mauzi'&&String(password)==='123ra')user={username,ownerKey:DEFAULT_OWNER_KEY};
+ }
+ if(!user)return alert('Usuario o contraseña incorrectos.');
+ const validOwnerKey=(user.ownerKey===legacyKey||(user.ownerKeys||[]).includes(legacyKey)||userDataOwnerKeys(username).includes(legacyKey))?legacyKey:user.ownerKey;
+ const repaired=await savePasswordForUser(username,password,validOwnerKey);
+ currentUser={role:'user',username:repaired.username,ownerKey:validOwnerKey};
  sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));
  if(document.getElementById('rememberAccess')?.checked)localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));else localStorage.removeItem(K_REMEMBERED);
  enterApp();
@@ -322,7 +372,8 @@ async function recoverAccount(){
  const keyword=prompt('Escriba su palabra clave de recuperación:','');
  if(keyword===null||!normalizeRecovery(keyword))return;
  let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
- const user=users.find(u=>u.username===username);
+ const candidates=users.filter(u=>normalizeUser(u.username)===username);
+ const user=candidates.sort((a,b)=>userDataOwnerKeys(username).includes(b.ownerKey)-userDataOwnerKeys(username).includes(a.ownerKey))[0];
  if(!user)return alert('No se encontró esa cuenta en este teléfono.');
  const expected=user.recoveryHash||await recoveryHash(username);
  if(await recoveryHash(keyword)!==expected)return alert('La palabra clave no coincide.');
@@ -331,8 +382,8 @@ async function recoverAccount(){
  const confirmPass=prompt('Repita la nueva contraseña:','');
  if(next!==confirmPass)return alert('Las contraseñas no coinciden.');
  // Solo cambia la contraseña. El identificador de la cuenta y todas sus cajas permanecen iguales.
- await savePasswordForUser(username,next);
- currentUser={role:'user',username:user.username,ownerKey:user.ownerKey};
+ const repaired=await savePasswordForUser(username,next,preferredOwnerKey(username,candidates));
+ currentUser={role:'user',username:repaired.username,ownerKey:repaired.ownerKey};
  sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));
  if(document.getElementById('rememberAccess')?.checked)localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));else localStorage.removeItem(K_REMEMBERED);
  enterApp();
