@@ -1,8 +1,11 @@
 
+
+
+
 const MI_LINK_FIJO="https://script.google.com/macros/s/AKfycbzdzPDp5m41vMn-OyGA8CxTFZHHLbH3V0LVN7HWp6VZi05UcSCnGj0N-uMAt4S_ApZC8Q/exec";
 const DEFAULT_OWNER_KEY='d41c57e51278a5b41a496d2f';
 const M=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-const K_DB='db_raum_v9',K_META='cajas_meta_v9',K_CFG='invoice_cfg_v2',K_TOMBS='raum_tombstones_v2',K_BACK='raum_auto_backup_v3',K_SESSION='raum_session_v1',K_REMEMBERED='raum_remembered_session_v93',K_USERS='raum_users_v1',K_ARCHIVED='raum_archived_boxes_v1';
+const K_DB='db_raum_v9',K_META='cajas_meta_v9',K_CFG='invoice_cfg_v2',K_TOMBS='raum_tombstones_v2',K_BACK='raum_auto_backup_v3',K_SESSION='raum_session_v1',K_REMEMBERED='raum_remembered_session_v92',K_USERS='raum_users_v1',K_ARCHIVED='raum_archived_boxes_v1';
 const deviceId=localStorage.getItem('raum_device_id')||(()=>{const v='dev-'+Date.now()+'-'+Math.random().toString(36).slice(2);localStorage.setItem('raum_device_id',v);return v})();
 let db=[],cajasMetadata=[],tombstones=[],cajaActual=null,mesActual=new Date().getMonth(),modoResumen=false,deferredPrompt=null,currentUser=null,pendingInvoiceLogo=null,manageBoxesMode=false;
 const DEFAULT_INVOICE_CFG={business:'Raumauzi',taxId:'',phone:'5525 8033',address:'Guatemala',email:'',manager:'Tesorería',style:'bw1',format:'letter-landscape',title:'COMPROBANTE',footer:'Documento generado por Raumauzi PRO',logo:true,logoData:''};
@@ -77,17 +80,22 @@ function importBackup(ev){const file=ev.target.files[0];if(!file)return;const r=
 async function hashText(text){const data=new TextEncoder().encode(text);const hash=await crypto.subtle.digest('SHA-256',data);return [...new Uint8Array(hash)].map(b=>b.toString(16).padStart(2,'0')).join('')}
 function normalizeUser(v){return String(v||'').trim().toLowerCase().replace(/\s+/g,'')}
 function normalizeRecovery(v){return String(v||'').trim().toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ')}
-async function recoveryHash(v){return hashText('RAUMAUZI-RECOVERY|'+normalizeRecovery(v))}
 async function deriveOwnerKey(username,password){return (await hashText('RAUMAUZI|'+normalizeUser(username)+'|'+password)).slice(0,24)}
+async function passwordHash(username,password){return hashText('RAUMAUZI-PASSWORD|'+normalizeUser(username)+'|'+password)}
+async function recoveryHash(value){return hashText('RAUMAUZI-RECOVERY|'+normalizeRecovery(value))}
+function saveCurrentAccess(){sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));if(document.getElementById('rememberAccess')?.checked)localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));else localStorage.removeItem(K_REMEMBERED)}
+async function verifyUserPassword(user,password){if(!user)return false;const ph=await passwordHash(user.username,password);if(user.passwordHash&&user.passwordHash===ph)return true;const legacyKey=await deriveOwnerKey(user.username,password);if(legacyKey===user.ownerKey){user.passwordHash=ph;user.updatedAt=new Date().toISOString();const users=JSON.parse(localStorage.getItem(K_USERS)||'[]').map(u=>u.username===user.username?{...u,passwordHash:ph,updatedAt:user.updatedAt}:u);localStorage.setItem(K_USERS,JSON.stringify(users));return true}return false}
 async function initSecurity(){
  const defaultKey=DEFAULT_OWNER_KEY;
  let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
- if(!users.some(u=>u.username==='mauzi'))users.push({username:'mauzi',ownerKey:defaultKey,createdAt:new Date().toISOString(),initial:true});
- let usersChanged=false;
+ let changedUsers=false;
+ let mauzi=users.find(u=>u.username==='mauzi');
+ if(!mauzi){mauzi={username:'mauzi',ownerKey:defaultKey,createdAt:new Date().toISOString(),initial:true};users.push(mauzi);changedUsers=true}
  for(let i=0;i<users.length;i++){
-   if(!users[i].recoveryHash){users[i]={...users[i],recoveryHash:await recoveryHash(users[i].username)};usersChanged=true;}
+   if(!users[i].recoveryHash){users[i]={...users[i],recoveryHash:await recoveryHash(users[i].username)};changedUsers=true}
  }
- if(usersChanged||users.length)localStorage.setItem(K_USERS,JSON.stringify(users));
+ if(!mauzi.passwordHash){const mauziHash=await passwordHash('mauzi','123ra');users=users.map(u=>u.username==='mauzi'?{...u,passwordHash:mauziHash}:u);changedUsers=true}
+ if(changedUsers)localStorage.setItem(K_USERS,JSON.stringify(users));
  let changed=false;
  cajasMetadata=cajasMetadata.map(c=>{if(!c.ownerKey||c.ownerKey==='legacy'||c.ownerKey==='admin'){changed=true;return{...c,ownerKey:defaultKey,ownerName:'mauzi'}}return c});
  db=db.map(x=>{if(!x.ownerKey||x.ownerKey==='legacy'||x.ownerKey==='admin'){changed=true;return{...x,ownerKey:defaultKey,ownerName:'mauzi'}}return x});
@@ -98,89 +106,64 @@ async function initSecurity(){
  if(access){currentUser=access;sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));enterApp()}else showAuth();
  updateInstallButton();
 }
+function showAuth(){document.getElementById('authScreen').style.display='flex';document.getElementById('mainApp').classList.add('auth-hidden')}
+function enterApp(){loadInvoiceSettingsForCurrentUser();document.getElementById('authScreen').style.display='none';document.getElementById('mainApp').classList.remove('auth-hidden');document.getElementById('userChip').textContent='👤 '+currentUser.username;renderCajas();if(navigator.onLine)fullSync(true)}
 async function createUserAccount(){
  const username=normalizeUser(authUsername.value),password=authPassword.value;
  if(username.length<3)return alert('El usuario debe tener al menos 3 caracteres.');
  if(password.length<5)return alert('La contraseña debe tener al menos 5 caracteres.');
  let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
- if(users.some(u=>u.username===username))return alert('Ese nombre de usuario ya existe en este dispositivo.');
- let keyword=prompt('Escriba una palabra clave fácil para recuperar su cuenta. Puede usar su nombre.','');
+ if(users.some(u=>u.username===username))return alert('Ese nombre de usuario ya existe en este teléfono.');
+ let keyword=prompt('Escriba una palabra fácil para recuperar su cuenta. Puede usar su nombre:','');
  if(keyword===null)return;
  keyword=normalizeRecovery(keyword||username);
- if(keyword.length<2)return alert('La palabra clave debe tener al menos 2 caracteres.');
+ if(keyword.length<2)return alert('La palabra de recuperación debe tener al menos 2 caracteres.');
  const ownerKey=await deriveOwnerKey(username,password);
- users.push({username,ownerKey,recoveryHash:await recoveryHash(keyword),createdAt:new Date().toISOString()});
+ users.push({username,ownerKey,passwordHash:await passwordHash(username,password),recoveryHash:await recoveryHash(keyword),createdAt:new Date().toISOString()});
  localStorage.setItem(K_USERS,JSON.stringify(users));
- currentUser={role:'user',username,ownerKey};
- sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));
- if(document.getElementById('rememberAccess')?.checked)localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));else localStorage.removeItem(K_REMEMBERED);
- enterApp();
- alert('Cuenta creada correctamente. Su palabra clave permitirá recuperar la contraseña en este teléfono.');
+ currentUser={role:'user',username,ownerKey};saveCurrentAccess();enterApp();alert('Cuenta creada correctamente.');
 }
-async function loginAccount(){const username=normalizeUser(authUsername.value),password=authPassword.value;if(!username||!password)return alert('Escriba usuario y contraseña.');const ownerKey=await deriveOwnerKey(username,password);const users=JSON.parse(localStorage.getItem(K_USERS)||'[]');const valid=users.some(u=>u.username===username&&u.ownerKey===ownerKey);if(!valid)return alert('Usuario o contraseña incorrectos.');currentUser={role:'user',username,ownerKey};sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));if(document.getElementById('rememberAccess')?.checked)localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));else localStorage.removeItem(K_REMEMBERED);enterApp()}
-async function migrateAccountKey(username,oldKey,newKey){
- let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
- users=users.map(u=>u.username===username?{...u,ownerKey:newKey,updatedAt:new Date().toISOString()}:u);
- localStorage.setItem(K_USERS,JSON.stringify(users));
- cajasMetadata=cajasMetadata.map(c=>c.ownerKey===oldKey?{...c,ownerKey:newKey,ownerName:username}:c);
- db=db.map(x=>x.ownerKey===oldKey?{...x,ownerKey:newKey,ownerName:username,synced:false,updatedAt:Date.now()}:x);
- const oldCfg=localStorage.getItem(`${K_CFG}_${oldKey}`);
- if(oldCfg){localStorage.setItem(`${K_CFG}_${newKey}`,oldCfg);localStorage.removeItem(`${K_CFG}_${oldKey}`)}
- saveAll();
-}
-async function recoverAccount(){
- const username=normalizeUser(prompt('Escriba su nombre de usuario:','')||'');
- if(!username)return;
- const keyword=prompt('Escriba su palabra clave de recuperación:','');
- if(keyword===null||!normalizeRecovery(keyword))return;
- let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
+async function loginAccount(){
+ const username=normalizeUser(authUsername.value),password=authPassword.value;
+ if(!username||!password)return alert('Escriba usuario y contraseña.');
+ const users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
  const user=users.find(u=>u.username===username);
- if(!user)return alert('No se encontró esa cuenta en este teléfono.');
- const expected=user.recoveryHash||await recoveryHash(username);
- if(await recoveryHash(keyword)!==expected)return alert('La palabra clave no coincide.');
- const next=prompt('Escriba su nueva contraseña (mínimo 5 caracteres):','');
- if(!next||next.length<5)return alert('La nueva contraseña debe tener al menos 5 caracteres.');
- const confirmPass=prompt('Repita la nueva contraseña:','');
- if(next!==confirmPass)return alert('Las contraseñas no coinciden.');
- const newKey=await deriveOwnerKey(username,next);
- await migrateAccountKey(username,user.ownerKey,newKey);
- currentUser={role:'user',username,ownerKey:newKey};
- sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));
- if(document.getElementById('rememberAccess')?.checked)localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));else localStorage.removeItem(K_REMEMBERED);
- enterApp();
- alert('Contraseña recuperada correctamente. Ya puede entrar con la nueva contraseña.');
-}
-async function setRecoveryKeyword(){
- if(!currentUser)return;
- let keyword=prompt('Nueva palabra clave de recuperación. Puede usar su nombre:','');
- if(keyword===null)return;
- keyword=normalizeRecovery(keyword);
- if(keyword.length<2)return alert('La palabra clave debe tener al menos 2 caracteres.');
- const confirmKeyword=normalizeRecovery(prompt('Repita la palabra clave:','')||'');
- if(keyword!==confirmKeyword)return alert('Las palabras clave no coinciden.');
- let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
- const h=await recoveryHash(keyword);
- users=users.map(u=>u.username===currentUser.username?{...u,recoveryHash:h,updatedAt:new Date().toISOString()}:u);
- localStorage.setItem(K_USERS,JSON.stringify(users));
- alert('Palabra clave guardada en este teléfono.');
+ if(!await verifyUserPassword(user,password))return alert('Usuario o contraseña incorrectos.');
+ currentUser={role:'user',username:user.username,ownerKey:user.ownerKey};saveCurrentAccess();enterApp();
 }
 function logoutAccount(){if(!confirm('¿Cerrar sesión?'))return;cajaActual=null;currentUser=null;invoiceCfg={...DEFAULT_INVOICE_CFG};sessionStorage.removeItem(K_SESSION);localStorage.removeItem(K_REMEMBERED);document.getElementById('interfazCaja').classList.add('hidden');document.getElementById('vistaPrincipal').classList.remove('hidden');authPassword.value='';showAuth()}
 async function changeUserPassword(){
  if(!currentUser)return;
  const oldPass=prompt('Contraseña actual:');if(oldPass===null)return;
- const oldKey=await deriveOwnerKey(currentUser.username,oldPass);
- if(oldKey!==currentUser.ownerKey)return alert('La contraseña actual es incorrecta.');
- const next=prompt('Nueva contraseña (mínimo 5 caracteres):');
- if(!next||next.length<5)return alert('La nueva contraseña debe tener al menos 5 caracteres.');
- const confirmPass=prompt('Repita la nueva contraseña:');
- if(next!==confirmPass)return alert('Las contraseñas no coinciden.');
- const newKey=await deriveOwnerKey(currentUser.username,next);
- await migrateAccountKey(currentUser.username,oldKey,newKey);
- currentUser={role:'user',username:currentUser.username,ownerKey:newKey};
- sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));
- if(localStorage.getItem(K_REMEMBERED))localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));
- renderCajas();
- alert('Contraseña actualizada correctamente.');
+ let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');const user=users.find(u=>u.username===currentUser.username);
+ if(!await verifyUserPassword(user,oldPass))return alert('La contraseña actual es incorrecta.');
+ const next=prompt('Nueva contraseña (mínimo 5 caracteres):');if(!next||next.length<5)return alert('La nueva contraseña debe tener al menos 5 caracteres.');
+ const confirmPass=prompt('Repita la nueva contraseña:');if(next!==confirmPass)return alert('Las contraseñas no coinciden.');
+ const ph=await passwordHash(currentUser.username,next);
+ users=JSON.parse(localStorage.getItem(K_USERS)||'[]').map(u=>u.username===currentUser.username?{...u,passwordHash:ph,updatedAt:new Date().toISOString()}:u);
+ localStorage.setItem(K_USERS,JSON.stringify(users));saveCurrentAccess();alert('Contraseña actualizada. Sus cajas permanecen en la misma cuenta.');
+}
+async function recoverAccount(){
+ const username=normalizeUser(prompt('Escriba su nombre de usuario:','')||'');if(!username)return;
+ let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');const user=users.find(u=>u.username===username);
+ if(!user)return alert('No se encontró esa cuenta en este teléfono.');
+ const keyword=prompt('Escriba su palabra de recuperación:','');if(keyword===null||!normalizeRecovery(keyword))return;
+ if(await recoveryHash(keyword)!==user.recoveryHash)return alert('La palabra de recuperación no coincide.');
+ const next=prompt('Escriba una contraseña nueva (mínimo 5 caracteres):','');if(!next||next.length<5)return alert('La contraseña debe tener al menos 5 caracteres.');
+ const confirmPass=prompt('Repita la contraseña nueva:','');if(next!==confirmPass)return alert('Las contraseñas no coinciden.');
+ const ph=await passwordHash(username,next);
+ users=users.map(u=>u.username===username?{...u,passwordHash:ph,updatedAt:new Date().toISOString()}:u);
+ localStorage.setItem(K_USERS,JSON.stringify(users));
+ currentUser={role:'user',username:user.username,ownerKey:user.ownerKey};saveCurrentAccess();enterApp();alert('Contraseña cambiada. Sus cajas y movimientos permanecen iguales.');
+}
+async function setRecoveryKeyword(){
+ if(!currentUser)return;
+ let keyword=prompt('Escriba una palabra fácil de recordar, por ejemplo su nombre:','');if(keyword===null)return;
+ keyword=normalizeRecovery(keyword);if(keyword.length<2)return alert('La palabra debe tener al menos 2 caracteres.');
+ const confirmKeyword=normalizeRecovery(prompt('Repita la palabra:','')||'');if(keyword!==confirmKeyword)return alert('Las palabras no coinciden.');
+ let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');const rh=await recoveryHash(keyword);
+ users=users.map(u=>u.username===currentUser.username?{...u,recoveryHash:rh,updatedAt:new Date().toISOString()}:u);
+ localStorage.setItem(K_USERS,JSON.stringify(users));alert('Palabra de recuperación guardada en este teléfono.');
 }
 
 function pdfSpec(format){if(format==='letter-portrait')return{orientation:'portrait',unit:'mm',format:'letter'};if(format==='a4-portrait')return{orientation:'portrait',unit:'mm',format:'a4'};if(format==='a4-landscape')return{orientation:'landscape',unit:'mm',format:'a4'};if(format==='half-letter')return{orientation:'portrait',unit:'mm',format:[139.7,215.9]};return{orientation:'landscape',unit:'mm',format:'letter'}}

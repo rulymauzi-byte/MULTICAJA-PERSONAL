@@ -1,7 +1,7 @@
 {
   "name": "Multicaja Mauzi",
-  "short_name": "Mauzi",
-  "description": "Sistema profesional multicaja con facturación personalizable y sincronización segura.",
+  "short_name": "Multicaja Mauzi",
+  "description": "Sistema profesional de tesorería multicaja para iglesias, con facturación personalizable y sincronización segura.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
