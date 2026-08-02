@@ -2,7 +2,7 @@
 const MI_LINK_FIJO="https://script.google.com/macros/s/AKfycbzdzPDp5m41vMn-OyGA8CxTFZHHLbH3V0LVN7HWp6VZi05UcSCnGj0N-uMAt4S_ApZC8Q/exec";
 const DEFAULT_OWNER_KEY='d41c57e51278a5b41a496d2f';
 const M=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-const K_DB='db_raum_v9',K_META='cajas_meta_v9',K_CFG='invoice_cfg_v2',K_TOMBS='raum_tombstones_v2',K_BACK='raum_auto_backup_v3',K_SESSION='raum_session_v1',K_USERS='raum_users_v1',K_ARCHIVED='raum_archived_boxes_v1';
+const K_DB='db_raum_v9',K_META='cajas_meta_v9',K_CFG='invoice_cfg_v2',K_TOMBS='raum_tombstones_v2',K_BACK='raum_auto_backup_v3',K_SESSION='raum_session_v1',K_REMEMBERED='raum_remembered_session_v93',K_USERS='raum_users_v1',K_ARCHIVED='raum_archived_boxes_v1';
 const deviceId=localStorage.getItem('raum_device_id')||(()=>{const v='dev-'+Date.now()+'-'+Math.random().toString(36).slice(2);localStorage.setItem('raum_device_id',v);return v})();
 let db=[],cajasMetadata=[],tombstones=[],cajaActual=null,mesActual=new Date().getMonth(),modoResumen=false,deferredPrompt=null,currentUser=null,pendingInvoiceLogo=null,manageBoxesMode=false;
 const DEFAULT_INVOICE_CFG={business:'Raumauzi',taxId:'',phone:'5525 8033',address:'Guatemala',email:'',manager:'Tesorería',style:'bw1',format:'letter-landscape',title:'COMPROBANTE',footer:'Documento generado por Raumauzi PRO',logo:true,logoData:''};
@@ -27,8 +27,11 @@ function boxIdentity(c){return `${normBoxName(c.nombre)}|${Number(c.year)||0}|${
 function dedupeBoxes(list){const map=new Map();for(const raw of list||[]){if(!raw||!String(raw.nombre||'').trim())continue;const c={...raw,nombre:String(raw.nombre).trim().replace(/\s+/g,' '),year:Number(raw.year)||new Date().getFullYear(),saldoInicial:n(raw.saldoInicial)};const k=boxIdentity(c);const prev=map.get(k);if(!prev)map.set(k,c);else map.set(k,{...prev,...c,saldoInicial:Math.abs(n(c.saldoInicial))>=Math.abs(n(prev.saldoInicial))?n(c.saldoInicial):n(prev.saldoInicial)});}return [...map.values()]}
 window.addEventListener('load',async()=>{migrate();generarAnios();actualizarFechas();setNetStatus();await initSecurity();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{})});
 window.addEventListener('online',()=>{setNetStatus();fullSync(true)});window.addEventListener('offline',setNetStatus);
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('installBtn').classList.remove('hidden')});
-async function triggerInstall(){if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;return}const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent);alert(isiOS?'En iPhone: toque Compartir y luego “Agregar a pantalla de inicio”.':'Abra el menú del navegador y elija “Instalar aplicación” o “Agregar a pantalla principal”.')}
+function isInstalledApp(){return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true}
+function updateInstallButton(){const b=document.getElementById('installBtn');if(!b)return;if(isInstalledApp()||!deferredPrompt)b.classList.add('hidden');else b.classList.remove('hidden')}
+window.addEventListener('beforeinstallprompt',e=>{if(isInstalledApp())return;e.preventDefault();deferredPrompt=e;updateInstallButton()});
+window.addEventListener('appinstalled',()=>{deferredPrompt=null;updateInstallButton()});
+async function triggerInstall(){if(isInstalledApp()){updateInstallButton();return}if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;updateInstallButton();return}const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent);alert(isiOS?'En iPhone: toque Compartir y luego “Agregar a pantalla de inicio”.':'La instalación estará disponible cuando el navegador la habilite.')}
 function setNetStatus(sync=false){const c=document.getElementById('statusContainer');const t=document.getElementById('statusTxt');c.className='status '+(sync?'syncing':navigator.onLine?'online':'offline');t.textContent=sync?'Sincronizando…':navigator.onLine?'Online':'Sin conexión'}
 function generarAnios(){const s=document.getElementById('selectYear');const selected=Number(s.value)||new Date().getFullYear();const found=[...cajasMetadata.map(c=>Number(c.year)),...db.map(x=>Number(x.cajaYear)),new Date().getFullYear()].filter(Number.isFinite);const min=Math.min(2025,...found),max=Math.max(2045,...found);s.innerHTML='';for(let i=min;i<=max;i++)s.add(new Option(i,i,i===selected,i===selected));if(![...s.options].some(o=>Number(o.value)===selected))s.value=new Date().getFullYear()}
 function permittedBox(c){if(!currentUser)return false;if(currentUser.username==='mauzi')return true;return (c.ownerKey||DEFAULT_OWNER_KEY)===currentUser.ownerKey}
@@ -68,19 +71,117 @@ function invoiceHtml(cfg,item){const style=String(cfg.style||'bw1').replace('bw'
 function updateInvoicePreview(){document.getElementById('invoicePreview').innerHTML=invoiceHtml(invoiceDraft(),null)}
 function openTools(){openModal('toolsModal')}function openModal(id){document.getElementById(id).classList.add('open')}function closeModal(id){document.getElementById(id).classList.remove('open')}
 function setLoader(show,text='Procesando…'){document.getElementById('loader').classList.toggle('open',!!show);document.getElementById('loaderText').textContent=text}
-function exportBackup(){const blob=new Blob([JSON.stringify({version:'9.1',exportedAt:new Date().toISOString(),db,cajasMetadata,tombstones,invoiceCfg},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Raumauzi_v9.1_Respaldo_${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href)}
+function exportBackup(){const blob=new Blob([JSON.stringify({version:'9.2',exportedAt:new Date().toISOString(),db,cajasMetadata,tombstones,invoiceCfg},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`Raumauzi_v9.2_Respaldo_${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href)}
 function importBackup(ev){const file=ev.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!Array.isArray(x.db)||!Array.isArray(x.cajasMetadata))throw Error();if(!confirm('Esto combinará el respaldo con los datos actuales. ¿Continuar?'))return;db=mergeCloud(db,x.db);for(const c of x.cajasMetadata){if(!cajasMetadata.some(a=>a.nombre===c.nombre&&+a.year===+c.year))cajasMetadata.push(c)}tombstones=[...tombstones,...(x.tombstones||[])];invoiceCfg={...invoiceCfg,...(x.invoiceCfg||{})};saveAll();localStorage.setItem(invoiceStorageKey(),JSON.stringify(invoiceCfg));renderCajas();alert('Respaldo restaurado y combinado para esta cuenta.')}catch{alert('El archivo no es un respaldo válido.')}};r.readAsText(file);ev.target.value=''}
 
 async function hashText(text){const data=new TextEncoder().encode(text);const hash=await crypto.subtle.digest('SHA-256',data);return [...new Uint8Array(hash)].map(b=>b.toString(16).padStart(2,'0')).join('')}
 function normalizeUser(v){return String(v||'').trim().toLowerCase().replace(/\s+/g,'')}
+function normalizeRecovery(v){return String(v||'').trim().toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ')}
+async function recoveryHash(v){return hashText('RAUMAUZI-RECOVERY|'+normalizeRecovery(v))}
 async function deriveOwnerKey(username,password){return (await hashText('RAUMAUZI|'+normalizeUser(username)+'|'+password)).slice(0,24)}
-async function initSecurity(){const defaultKey=DEFAULT_OWNER_KEY;let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');if(!users.some(u=>u.username==='mauzi'))users.push({username:'mauzi',ownerKey:defaultKey,createdAt:new Date().toISOString(),initial:true});localStorage.setItem(K_USERS,JSON.stringify(users));let changed=false;cajasMetadata=cajasMetadata.map(c=>{if(!c.ownerKey||c.ownerKey==='legacy'||c.ownerKey==='admin'){changed=true;return{...c,ownerKey:defaultKey,ownerName:'mauzi'}}return c});db=db.map(x=>{if(!x.ownerKey||x.ownerKey==='legacy'||x.ownerKey==='admin'){changed=true;return{...x,ownerKey:defaultKey,ownerName:'mauzi'}}return x});if(changed)saveAll();const saved=JSON.parse(sessionStorage.getItem(K_SESSION)||'null');if(saved&&saved.ownerKey){currentUser=saved;enterApp()}else showAuth()}
-function showAuth(){document.getElementById('authScreen').style.display='flex';document.getElementById('mainApp').classList.add('auth-hidden')}
-function enterApp(){loadInvoiceSettingsForCurrentUser();document.getElementById('authScreen').style.display='none';document.getElementById('mainApp').classList.remove('auth-hidden');document.getElementById('userChip').textContent='👤 '+currentUser.username;renderCajas();if(navigator.onLine)fullSync(true)}
-async function createUserAccount(){const username=normalizeUser(authUsername.value),password=authPassword.value;if(username.length<3)return alert('El usuario debe tener al menos 3 caracteres.');if(password.length<5)return alert('La contraseña debe tener al menos 5 caracteres.');let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');if(users.some(u=>u.username===username))return alert('Ese nombre de usuario ya existe en este dispositivo.');const ownerKey=await deriveOwnerKey(username,password);users.push({username,ownerKey,createdAt:new Date().toISOString()});localStorage.setItem(K_USERS,JSON.stringify(users));currentUser={role:'user',username,ownerKey};sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));enterApp();alert('Cuenta creada. Guarde bien el usuario y contraseña.')}
-async function loginAccount(){const username=normalizeUser(authUsername.value),password=authPassword.value;if(!username||!password)return alert('Escriba usuario y contraseña.');const ownerKey=await deriveOwnerKey(username,password);const users=JSON.parse(localStorage.getItem(K_USERS)||'[]');const valid=users.some(u=>u.username===username&&u.ownerKey===ownerKey);if(!valid)return alert('Usuario o contraseña incorrectos.');currentUser={role:'user',username,ownerKey};sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));enterApp()}
-function logoutAccount(){if(!confirm('¿Cerrar sesión?'))return;cajaActual=null;currentUser=null;invoiceCfg={...DEFAULT_INVOICE_CFG};sessionStorage.removeItem(K_SESSION);document.getElementById('interfazCaja').classList.add('hidden');document.getElementById('vistaPrincipal').classList.remove('hidden');authPassword.value='';showAuth()}
-async function changeUserPassword(){if(!currentUser)return;const oldPass=prompt('Contraseña actual:');if(oldPass===null)return;const oldKey=await deriveOwnerKey(currentUser.username,oldPass);if(oldKey!==currentUser.ownerKey)return alert('La contraseña actual es incorrecta.');const next=prompt('Nueva contraseña (mínimo 5 caracteres):');if(!next||next.length<5)return alert('La nueva contraseña debe tener al menos 5 caracteres.');const confirmPass=prompt('Repita la nueva contraseña:');if(next!==confirmPass)return alert('Las contraseñas no coinciden.');const newKey=await deriveOwnerKey(currentUser.username,next);let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');users=users.map(u=>u.username===currentUser.username?{...u,ownerKey:newKey,updatedAt:new Date().toISOString()}:u);localStorage.setItem(K_USERS,JSON.stringify(users));cajasMetadata=cajasMetadata.map(c=>c.ownerKey===oldKey?{...c,ownerKey:newKey,ownerName:currentUser.username}:c);db=db.map(x=>x.ownerKey===oldKey?{...x,ownerKey:newKey,ownerName:currentUser.username,synced:false,updatedAt:Date.now()}:x);const oldCfg=localStorage.getItem(`${K_CFG}_${oldKey}`);if(oldCfg){localStorage.setItem(`${K_CFG}_${newKey}`,oldCfg);localStorage.removeItem(`${K_CFG}_${oldKey}`)}currentUser={role:'user',username:currentUser.username,ownerKey:newKey};sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));saveAll();renderCajas();alert('Contraseña actualizada correctamente.')}
+async function initSecurity(){
+ const defaultKey=DEFAULT_OWNER_KEY;
+ let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
+ if(!users.some(u=>u.username==='mauzi'))users.push({username:'mauzi',ownerKey:defaultKey,createdAt:new Date().toISOString(),initial:true});
+ let usersChanged=false;
+ for(let i=0;i<users.length;i++){
+   if(!users[i].recoveryHash){users[i]={...users[i],recoveryHash:await recoveryHash(users[i].username)};usersChanged=true;}
+ }
+ if(usersChanged||users.length)localStorage.setItem(K_USERS,JSON.stringify(users));
+ let changed=false;
+ cajasMetadata=cajasMetadata.map(c=>{if(!c.ownerKey||c.ownerKey==='legacy'||c.ownerKey==='admin'){changed=true;return{...c,ownerKey:defaultKey,ownerName:'mauzi'}}return c});
+ db=db.map(x=>{if(!x.ownerKey||x.ownerKey==='legacy'||x.ownerKey==='admin'){changed=true;return{...x,ownerKey:defaultKey,ownerName:'mauzi'}}return x});
+ if(changed)saveAll();
+ const saved=JSON.parse(sessionStorage.getItem(K_SESSION)||'null');
+ const remembered=JSON.parse(localStorage.getItem(K_REMEMBERED)||'null');
+ const access=saved&&saved.ownerKey?saved:(remembered&&remembered.ownerKey?remembered:null);
+ if(access){currentUser=access;sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));enterApp()}else showAuth();
+ updateInstallButton();
+}
+async function createUserAccount(){
+ const username=normalizeUser(authUsername.value),password=authPassword.value;
+ if(username.length<3)return alert('El usuario debe tener al menos 3 caracteres.');
+ if(password.length<5)return alert('La contraseña debe tener al menos 5 caracteres.');
+ let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
+ if(users.some(u=>u.username===username))return alert('Ese nombre de usuario ya existe en este dispositivo.');
+ let keyword=prompt('Escriba una palabra clave fácil para recuperar su cuenta. Puede usar su nombre.','');
+ if(keyword===null)return;
+ keyword=normalizeRecovery(keyword||username);
+ if(keyword.length<2)return alert('La palabra clave debe tener al menos 2 caracteres.');
+ const ownerKey=await deriveOwnerKey(username,password);
+ users.push({username,ownerKey,recoveryHash:await recoveryHash(keyword),createdAt:new Date().toISOString()});
+ localStorage.setItem(K_USERS,JSON.stringify(users));
+ currentUser={role:'user',username,ownerKey};
+ sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));
+ if(document.getElementById('rememberAccess')?.checked)localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));else localStorage.removeItem(K_REMEMBERED);
+ enterApp();
+ alert('Cuenta creada correctamente. Su palabra clave permitirá recuperar la contraseña en este teléfono.');
+}
+async function loginAccount(){const username=normalizeUser(authUsername.value),password=authPassword.value;if(!username||!password)return alert('Escriba usuario y contraseña.');const ownerKey=await deriveOwnerKey(username,password);const users=JSON.parse(localStorage.getItem(K_USERS)||'[]');const valid=users.some(u=>u.username===username&&u.ownerKey===ownerKey);if(!valid)return alert('Usuario o contraseña incorrectos.');currentUser={role:'user',username,ownerKey};sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));if(document.getElementById('rememberAccess')?.checked)localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));else localStorage.removeItem(K_REMEMBERED);enterApp()}
+async function migrateAccountKey(username,oldKey,newKey){
+ let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
+ users=users.map(u=>u.username===username?{...u,ownerKey:newKey,updatedAt:new Date().toISOString()}:u);
+ localStorage.setItem(K_USERS,JSON.stringify(users));
+ cajasMetadata=cajasMetadata.map(c=>c.ownerKey===oldKey?{...c,ownerKey:newKey,ownerName:username}:c);
+ db=db.map(x=>x.ownerKey===oldKey?{...x,ownerKey:newKey,ownerName:username,synced:false,updatedAt:Date.now()}:x);
+ const oldCfg=localStorage.getItem(`${K_CFG}_${oldKey}`);
+ if(oldCfg){localStorage.setItem(`${K_CFG}_${newKey}`,oldCfg);localStorage.removeItem(`${K_CFG}_${oldKey}`)}
+ saveAll();
+}
+async function recoverAccount(){
+ const username=normalizeUser(prompt('Escriba su nombre de usuario:','')||'');
+ if(!username)return;
+ const keyword=prompt('Escriba su palabra clave de recuperación:','');
+ if(keyword===null||!normalizeRecovery(keyword))return;
+ let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
+ const user=users.find(u=>u.username===username);
+ if(!user)return alert('No se encontró esa cuenta en este teléfono.');
+ const expected=user.recoveryHash||await recoveryHash(username);
+ if(await recoveryHash(keyword)!==expected)return alert('La palabra clave no coincide.');
+ const next=prompt('Escriba su nueva contraseña (mínimo 5 caracteres):','');
+ if(!next||next.length<5)return alert('La nueva contraseña debe tener al menos 5 caracteres.');
+ const confirmPass=prompt('Repita la nueva contraseña:','');
+ if(next!==confirmPass)return alert('Las contraseñas no coinciden.');
+ const newKey=await deriveOwnerKey(username,next);
+ await migrateAccountKey(username,user.ownerKey,newKey);
+ currentUser={role:'user',username,ownerKey:newKey};
+ sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));
+ if(document.getElementById('rememberAccess')?.checked)localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));else localStorage.removeItem(K_REMEMBERED);
+ enterApp();
+ alert('Contraseña recuperada correctamente. Ya puede entrar con la nueva contraseña.');
+}
+async function setRecoveryKeyword(){
+ if(!currentUser)return;
+ let keyword=prompt('Nueva palabra clave de recuperación. Puede usar su nombre:','');
+ if(keyword===null)return;
+ keyword=normalizeRecovery(keyword);
+ if(keyword.length<2)return alert('La palabra clave debe tener al menos 2 caracteres.');
+ const confirmKeyword=normalizeRecovery(prompt('Repita la palabra clave:','')||'');
+ if(keyword!==confirmKeyword)return alert('Las palabras clave no coinciden.');
+ let users=JSON.parse(localStorage.getItem(K_USERS)||'[]');
+ const h=await recoveryHash(keyword);
+ users=users.map(u=>u.username===currentUser.username?{...u,recoveryHash:h,updatedAt:new Date().toISOString()}:u);
+ localStorage.setItem(K_USERS,JSON.stringify(users));
+ alert('Palabra clave guardada en este teléfono.');
+}
+function logoutAccount(){if(!confirm('¿Cerrar sesión?'))return;cajaActual=null;currentUser=null;invoiceCfg={...DEFAULT_INVOICE_CFG};sessionStorage.removeItem(K_SESSION);localStorage.removeItem(K_REMEMBERED);document.getElementById('interfazCaja').classList.add('hidden');document.getElementById('vistaPrincipal').classList.remove('hidden');authPassword.value='';showAuth()}
+async function changeUserPassword(){
+ if(!currentUser)return;
+ const oldPass=prompt('Contraseña actual:');if(oldPass===null)return;
+ const oldKey=await deriveOwnerKey(currentUser.username,oldPass);
+ if(oldKey!==currentUser.ownerKey)return alert('La contraseña actual es incorrecta.');
+ const next=prompt('Nueva contraseña (mínimo 5 caracteres):');
+ if(!next||next.length<5)return alert('La nueva contraseña debe tener al menos 5 caracteres.');
+ const confirmPass=prompt('Repita la nueva contraseña:');
+ if(next!==confirmPass)return alert('Las contraseñas no coinciden.');
+ const newKey=await deriveOwnerKey(currentUser.username,next);
+ await migrateAccountKey(currentUser.username,oldKey,newKey);
+ currentUser={role:'user',username:currentUser.username,ownerKey:newKey};
+ sessionStorage.setItem(K_SESSION,JSON.stringify(currentUser));
+ if(localStorage.getItem(K_REMEMBERED))localStorage.setItem(K_REMEMBERED,JSON.stringify(currentUser));
+ renderCajas();
+ alert('Contraseña actualizada correctamente.');
+}
 
 function pdfSpec(format){if(format==='letter-portrait')return{orientation:'portrait',unit:'mm',format:'letter'};if(format==='a4-portrait')return{orientation:'portrait',unit:'mm',format:'a4'};if(format==='a4-landscape')return{orientation:'landscape',unit:'mm',format:'a4'};if(format==='half-letter')return{orientation:'portrait',unit:'mm',format:[139.7,215.9]};return{orientation:'landscape',unit:'mm',format:'letter'}}
 function loadLogoData(){return new Promise(resolve=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;c.getContext('2d').drawImage(img,0,0);resolve(c.toDataURL('image/png'))};img.onerror=()=>resolve(null);img.src=invoiceCfg.logoData||'logo.png'})}
